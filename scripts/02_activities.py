@@ -29,6 +29,8 @@ REGISTRY = ROOT / "datasets.toml"
 FEATURES = ROOT / "cache" / "features"
 PREDICTIONS = ROOT / "cache" / "predictions"
 
+MAX_UNMATCHED_FRACTION = 0.01
+
 
 def classify(spec: DatasetSpec, features_dir: Path, use_back: bool) -> pd.DataFrame:
     """Predict activities for every cached subject and join ground truth."""
@@ -56,6 +58,16 @@ def classify(spec: DatasetSpec, features_dir: Path, use_back: bool) -> pd.DataFr
         if joined.empty:
             raise ValueError(
                 f"{spec.name}: {subject} has no overlap between ground truth and predictions"
+            )
+
+        # A few unmatched seconds at the signal edges are normal (measured worst
+        # case 0.08%; Lendt exactly 0). A large shortfall means the two indices
+        # have drifted apart, which would quietly shrink the evaluated set.
+        unmatched = len(truth) - len(joined)
+        if unmatched / len(truth) > MAX_UNMATCHED_FRACTION:
+            raise ValueError(
+                f"{spec.name}: {subject} lost {unmatched:,} of {len(truth):,} "
+                f"ground-truth seconds ({unmatched / len(truth):.1%}) with no prediction"
             )
 
         joined["id"] = subject
@@ -126,7 +138,20 @@ def main() -> None:
         features_dir = args.features / name
 
         if not args.force:
-            provenance.verify(features_dir, revision=spec.revision, actimotus_version=version)
+            stamp = provenance.verify(
+                features_dir, revision=spec.revision, actimotus_version=version
+            )
+            # The README invites --limit for smoke runs. Without this check a
+            # 2-subject cache produces a complete-looking table for the whole
+            # cohort, which is the easiest wrong number in the package to publish
+            # by accident.
+            if stamp.get("limited"):
+                raise provenance.StaleCacheError(
+                    f"{features_dir} was built with --limit "
+                    f"({stamp.get('n_subjects')} subjects), so results would cover "
+                    "only a subset. Re-run stage 1 without --limit, or pass --force "
+                    "if a partial run is what you want."
+                )
 
         for use_back, suffix in ((False, ""), (True, "_trunk")):
             if use_back and spec.back is None:

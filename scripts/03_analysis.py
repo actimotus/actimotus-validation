@@ -124,15 +124,21 @@ def main() -> None:
         if args.only not in builders:
             parser.error(f"unknown output {args.only!r}. Known: {list(builders)}")
         builders[args.only]()
+        built = [args.only]
     else:
         for build in builders.values():
             build()
+        built = list(builders)
 
+    upstream = provenance.read(args.predictions)
     provenance.write(
         args.results,
         stage="analysis",
-        dataset="all",
-        revision=provenance.read(args.predictions)["revision"],
+        # Name what this run actually built. After --only, the other outputs in
+        # results/ are from an earlier run and may be stale or absent.
+        dataset=",".join(built),
+        revision=upstream["revision"],
+        extra={"outputs": built, "complete": len(built) == len(builders)},
     )
 
 

@@ -37,7 +37,9 @@ def test_three_stages_run_end_to_end(tmp_path):
 
     run("scripts/01_features.py", "--dataset", SMOKE, "--limit", "2",
         "--cache", str(features))
-    run("scripts/02_activities.py", "--dataset", SMOKE,
+    # --force because the cache is deliberately partial: stage 2 otherwise
+    # refuses a --limit cache, so results cannot silently cover a subset.
+    run("scripts/02_activities.py", "--dataset", SMOKE, "--force",
         "--features", str(features), "--out", str(predictions))
 
     df = pd.read_parquet(predictions / f"{SMOKE}.parquet")
