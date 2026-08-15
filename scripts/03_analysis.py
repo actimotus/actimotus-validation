@@ -23,7 +23,21 @@ ROOT = Path(__file__).resolve().parent.parent
 PREDICTIONS = ROOT / "cache" / "predictions"
 RESULTS = ROOT / "results"
 
-NTNU = [("ntnu_children", "Children"), ("ntnu_adults", "Adults"), ("ntnu_older_adults", "Older Adults")]
+# Colour carries meaning: purple marks the one laboratory protocol, green the
+# free-living and semi-structured ones. Entries are (prediction table, panel
+# title, colour scheme).
+GREEN = "greens"
+PURPLE = "purples"
+
+NTNU = [
+    ("ntnu_children", "Children", GREEN),
+    ("ntnu_adults", "Adults", GREEN),
+    ("ntnu_older_adults", "Older Adults", GREEN),
+]
+LENDT = [
+    ("lendt_laboratory", "Laboratory", PURPLE),
+    ("lendt_free_living", "Free-living", GREEN),
+]
 
 
 def load(predictions: Path, name: str) -> pd.DataFrame:
@@ -37,16 +51,19 @@ def load(predictions: Path, name: str) -> pd.DataFrame:
 def grouped(
     predictions: Path,
     results: Path,
-    entries: list[tuple[str, str]],
+    entries: list[tuple[str, str, str]],
     labels: list[str],
     stem: str,
     fused: bool = False,
-    color: str = "greens",
 ) -> None:
-    """Build one side-by-side figure and one multi-sheet workbook."""
+    """Build one side-by-side figure and one multi-sheet workbook.
+
+    Each entry carries its own colour scheme, so a figure can mix protocols --
+    the Lendt panel pairs a purple laboratory matrix with a green free-living one.
+    """
     charts, tables = [], {}
 
-    for i, (name, title) in enumerate(entries):
+    for i, (name, title, color) in enumerate(entries):
         df = load(predictions, name)
         if fused:
             df = to_fused(df)
@@ -90,31 +107,20 @@ def main() -> None:
         "ntnu_datasets_trunk": lambda: grouped(
             args.predictions,
             args.results,
-            [(f"{n}_trunk", t) for n, t in NTNU],
+            [(f"{n}_trunk", t, c) for n, t, c in NTNU],
             LABELS,
             "ntnu_datasets_trunk",
         ),
         "lendt_adults": lambda: grouped(
-            args.predictions,
-            args.results,
-            [("lendt_laboratory", "Laboratory"), ("lendt_free_living", "Free-living")],
-            LABELS,
-            "lendt_adults",
-            color="purples",
+            args.predictions, args.results, LENDT, LABELS, "lendt_adults"
         ),
         "lendt_adults_fused": lambda: grouped(
-            args.predictions,
-            args.results,
-            [("lendt_laboratory", "Laboratory"), ("lendt_free_living", "Free-living")],
-            LABELS_FUSED,
-            "lendt_adults_fused",
-            fused=True,
-            color="purples",
+            args.predictions, args.results, LENDT, LABELS_FUSED, "lendt_adults_fused", fused=True
         ),
         "ntnu_walking_speeds": lambda: grouped(
             args.predictions,
             args.results,
-            [("ntnu_walking_speeds", "Walking Speeds")],
+            [("ntnu_walking_speeds", "Walking Speeds", GREEN)],
             LABELS_WALKING_SPEEDS,
             "ntnu_walking_speeds",
         ),
