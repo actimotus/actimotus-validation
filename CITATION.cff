@@ -6,10 +6,16 @@ authors:
   - family-names: Heidler
     given-names: Josef
     email: heidlerjosef@gmail.com
-repository-code: "https://github.com/josefheidler/actimotus-validation"
+repository-code: "https://github.com/actimotus/actimotus-validation"
 license: MIT
 version: 1.0.0
 date-released: "2026-08-15"
+abstract: >-
+  Reproduces the validation of the ActiMotus human activity recognition
+  algorithm against video ground truth on five public accelerometry datasets
+  covering children, adults and older adults. Three scripts regenerate every
+  table and confusion matrix in the study from data fetched at pinned
+  HuggingFace revisions and an ActiMotus release installed from PyPI.
 keywords:
   - accelerometry
   - human activity recognition

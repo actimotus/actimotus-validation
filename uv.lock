@@ -15,8 +15,8 @@ resolution-markers = [
 
 [[package]]
 name = "acti-motus"
-version = "2.3.2"
-source = { editable = "../acti-motus" }
+version = "2.3.3"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "altair" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -27,35 +27,9 @@ dependencies = [
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "vegafusion" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "altair", specifier = ">=5.5.0" },
-    { name = "numpy", specifier = ">=2.2.6" },
-    { name = "pandas", specifier = ">=2.2.3" },
-    { name = "pyarrow", specifier = ">=20.0.0" },
-    { name = "scipy", specifier = ">=1.13.0" },
-    { name = "vegafusion", specifier = ">=2.0.2" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "actipy", specifier = ">=3.8.0" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "kaleido", specifier = "==0.2.1" },
-    { name = "labda", directory = "../labda" },
-    { name = "nbformat", specifier = ">=5.10.4" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "optuna", specifier = ">=4.5.0" },
-    { name = "pre-commit", specifier = ">=4.2.0" },
-    { name = "pyinstrument", specifier = ">=5.0.2" },
-    { name = "pytest", specifier = ">=7.0.0" },
-    { name = "ruff", specifier = ">=0.11.11" },
-]
-docs = [
-    { name = "mkdocs", specifier = ">=1.6.1" },
-    { name = "mkdocs-material", specifier = ">=9.7.1" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/92/8e/00cb7716130e535a4af0291035f983dcea1d6092d1e3ed6059a32be8e651/acti_motus-2.3.3.tar.gz", hash = "sha256:b335fa41a26850b33d130b25a70bb0d945aa260dbf48713755549ed6f9bb3c55", size = 34510, upload-time = "2026-08-15T17:04:21.736Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/02/87/4678d83475f48169161307b79e2b9c3a5823f8320cc15a54ef60a0faa0c3/acti_motus-2.3.3-py3-none-any.whl", hash = "sha256:8747daa761df72ccbdbcd4389f08891d8ce3c006e030da2533261ae3164346d4", size = 40836, upload-time = "2026-08-15T17:04:20.318Z" },
 ]
 
 [[package]]
@@ -82,7 +56,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "acti-motus", editable = "../acti-motus" },
+    { name = "acti-motus", specifier = "==2.3.3" },
     { name = "altair", specifier = ">=5.5.0" },
     { name = "huggingface-hub", specifier = ">=0.26" },
     { name = "openpyxl", specifier = ">=3.1.5" },
