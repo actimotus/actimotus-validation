@@ -82,6 +82,15 @@ def ground_truth_1s(raw: pd.DataFrame, table: str) -> pd.DataFrame:
     acti-motus emits activities at 1 Hz, so labels are reduced to the modal label
     within each second. Rows whose label is unevaluated (jumping, transition) or
     null are dropped.
+
+    Order note: unevaluated labels are dropped *before* the per-second mode is
+    taken. The original study took the mode over raw labels first and dropped
+    afterwards, which discards a second that is mostly jumping but contains a few
+    walk samples. Measured over 10 children and 8 Lendt subjects, the two orders
+    differ by +0.97% and +0.01% of seconds respectively, with zero label
+    disagreements -- activity bouts are long relative to one second, so mixed
+    seconds occur only at bout boundaries. Dropping first is kept because it is
+    simpler and evaluates every second that has any evaluable ground truth.
     """
     activities = resolve_series(table, raw["label"], raw["variant"])
     activities = activities.dropna()
