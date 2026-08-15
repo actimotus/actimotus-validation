@@ -1,5 +1,7 @@
 # ActiMotus Validation — Reproducibility Package
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21955041.svg)](https://doi.org/10.5281/zenodo.21955041)
+
 Reproduces the validation of the [ActiMotus](https://github.com/actimotus/actimotus)
 human activity recognition algorithm against video ground truth, on five public
 accelerometry datasets covering children, adults and older adults.
@@ -96,7 +98,8 @@ it changes nothing on 153 of 154 thigh recordings, and both `orientation=True` a
 
 ## Citing
 
-Cite this package via the Zenodo DOI, and cite the source datasets separately —
+Cite this package via its DOI, [10.5281/zenodo.21955041](https://doi.org/10.5281/zenodo.21955041),
+which always resolves to the latest version. Cite the source datasets separately —
 see `CITATION.cff` and the individual dataset cards.
 
 ## License
