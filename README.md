@@ -41,22 +41,23 @@ source study listed on each dataset card.
 
 ## Results
 
-Overall accuracy, ActiMotus 2.3.3 with its built-in `DEFAULT` thresholds:
+Overall agreement with video ground truth, ActiMotus 2.3.3 with its built-in
+`DEFAULT` thresholds:
 
 | Dataset | Thigh only | Thigh + trunk |
 |---|---|---|
 | Lendt, laboratory | 0.995 | — |
 | Lendt, free-living | 0.889 | — |
-| NTNU Adults | 0.823 | 0.880 |
-| NTNU Children | 0.837 | 0.848 |
+| NTNU Adults | 0.824 | 0.880 |
+| NTNU Children | 0.831 | 0.848 |
 | NTNU Older Adults | 0.791 | 0.824 |
 | NTNU Walking Speeds | 0.795 | — |
 
-These reproduce the published study to within 0.011 on every dataset. Six
-per-activity recalls moved by 0.03 or more, all on the Axivity cohorts and all
-attributable to ActiMotus 2.3.0 → 2.3.3: adults' running (+0.089) and cycling
-(+0.043), children's stair climbing (+0.082) and sitting (+0.050), adults' stair
-climbing (+0.032), and children's thigh-only lying (−0.045).
+Per-activity precision, recall and F1 with 90% confidence intervals, computed per
+participant and then averaged across participants, are written to the `.xlsx`
+tables in `results/`, alongside confusion matrices as `.png`. Both the eight-activity
+vocabulary and the fused five-class collapse (sedentary, standing, walking, running,
+cycling) are reported.
 
 ## Sensor orientation
 
@@ -90,8 +91,8 @@ it changes nothing on 153 of 154 thigh recordings, and both `orientation=True` a
 - Thresholds are ActiMotus's built-in `DEFAULT` configuration, tuned by Bayesian
   optimization outside this package. Re-deriving them is out of scope.
 - Lying detection from the thigh alone fails for adults and older adults (recall
-  0.04 and 0.06); the back sensor resolves it (0.87 and 0.78). Children are the
-  exception, reaching 0.92 from the thigh alone.
+  0.06 in both); the back sensor resolves it (0.87 and 0.78). Children are the
+  exception, reaching 0.97 from the thigh alone.
 
 ## Citing
 
