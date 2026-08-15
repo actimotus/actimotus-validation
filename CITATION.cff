@@ -9,7 +9,7 @@ authors:
 repository-code: "https://github.com/actimotus/actimotus-validation"
 doi: "10.5281/zenodo.21955041"
 license: BSD-3-Clause
-version: 1.0.0
+version: 1.0.1
 date-released: "2026-08-15"
 abstract: >-
   Reproduces the validation of the ActiMotus human activity recognition

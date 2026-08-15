@@ -1,6 +1,6 @@
 [project]
 name = "actimotus-validation"
-version = "1.0.0"
+version = "1.0.1"
 description = "Reproducibility package for the ActiMotus human activity recognition validation study"
 readme = "README.md"
 license = "BSD-3-Clause"
