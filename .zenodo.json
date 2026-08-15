@@ -1,0 +1,16 @@
+{
+  "title": "ActiMotus Validation — Reproducibility Package",
+  "description": "Reproduces the validation of the ActiMotus human activity recognition algorithm against video ground truth on five public accelerometry datasets hosted on HuggingFace.",
+  "license": "MIT",
+  "upload_type": "software",
+  "creators": [
+    { "name": "Heidler, Josef" }
+  ],
+  "keywords": [
+    "accelerometry",
+    "human activity recognition",
+    "physical behaviour",
+    "validation",
+    "reproducibility"
+  ]
+}

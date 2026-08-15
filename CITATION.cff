@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "ActiMotus Validation — Reproducibility Package"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Heidler
+    given-names: Josef
+    email: heidlerjosef@gmail.com
+repository-code: "https://github.com/josefheidler/actimotus-validation"
+license: MIT
+version: 1.0.0
+date-released: "2026-08-15"
+keywords:
+  - accelerometry
+  - human activity recognition
+  - physical behaviour
+  - validation
+  - reproducibility
