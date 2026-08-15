@@ -27,23 +27,36 @@ def _raw() -> pd.DataFrame:
     )
 
 
-def test_sensor_frame_renames_and_converts_to_acti_frame():
-    out = sensor_frame(_raw(), "thigh_acc")
+def test_sensor_frame_converts_thigh_to_acti_frame():
+    out = sensor_frame(_raw(), "thigh_acc", to_acti_frame=True)
     assert list(out.columns) == ["acc_x", "acc_y", "acc_z"]
     assert out["acc_x"].iloc[0] == 1.0
     assert out["acc_y"].iloc[0] == -0.2   # negated
     assert out["acc_z"].iloc[0] == -0.9   # negated
 
 
-def test_sensor_frame_reads_the_back_sensor_too():
-    out = sensor_frame(_raw(), "back_acc")
+def test_sensor_frame_leaves_back_in_the_hub_frame():
+    """acti-motus wants the trunk z anterior, which is what hub already is."""
+    out = sensor_frame(_raw(), "back_acc", to_acti_frame=False)
     assert out["acc_x"].iloc[0] == 0.8
+    assert out["acc_y"].iloc[0] == 0.1    # unchanged
+    assert out["acc_z"].iloc[0] == 0.3    # unchanged
+
+
+def test_sensor_frame_can_convert_the_back_prefix_too():
+    """The choice is the caller's; the function is not sensor-role aware."""
+    out = sensor_frame(_raw(), "back_acc", to_acti_frame=True)
     assert out["acc_z"].iloc[0] == -0.3
+
+
+def test_sensor_frame_requires_an_explicit_frame_choice():
+    with pytest.raises(TypeError):
+        sensor_frame(_raw(), "thigh_acc")  # type: ignore[call-arg]
 
 
 def test_sensor_frame_raises_when_prefix_absent():
     with pytest.raises(ValueError, match="calf_acc"):
-        sensor_frame(_raw(), "calf_acc")
+        sensor_frame(_raw(), "calf_acc", to_acti_frame=True)
 
 
 def test_ground_truth_takes_the_per_second_mode():

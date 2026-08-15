@@ -40,14 +40,18 @@ def process(spec: DatasetSpec, limit: int, cache: Path) -> int:
         raw = data.read_subject(path)
         subject = path.stem
 
-        for role, prefix in (("thigh", spec.thigh), ("back", spec.back)):
+        # The thigh needs the hub -> acti frame conversion; the back does not.
+        for role, prefix, to_acti in (
+            ("thigh", spec.thigh, True),
+            ("back", spec.back, False),
+        ):
             if prefix is None:
                 continue
             target = out / role
             target.mkdir(parents=True, exist_ok=True)
-            features.compute(data.sensor_frame(raw, prefix)).to_parquet(
-                target / f"{subject}.parquet"
-            )
+            features.compute(
+                data.sensor_frame(raw, prefix, to_acti_frame=to_acti)
+            ).to_parquet(target / f"{subject}.parquet")
 
         print(f"  {spec.name}: {subject}", flush=True)
 

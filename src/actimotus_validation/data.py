@@ -56,11 +56,25 @@ def read_subject(path: Path) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="first")]
 
 
-def sensor_frame(raw: pd.DataFrame, prefix: str) -> pd.DataFrame:
+def sensor_frame(raw: pd.DataFrame, prefix: str, *, to_acti_frame: bool) -> pd.DataFrame:
     """Extract one sensor as an acti-motus-ready frame.
 
-    Selects the three axis columns for `prefix`, renames them to acc_x/y/z, and
-    converts hub frame to the frame acti-motus expects.
+    Selects the three axis columns for `prefix` and renames them to acc_x/y/z,
+    optionally converting from the published hub frame to the frame acti-motus
+    expects.
+
+    The two sensors want different frames, which is why this is a required
+    argument rather than a default:
+
+    * thigh -- pass True. acti-motus expects z posterior; hub is z anterior.
+      Without the conversion Lendt drops from 0.952 to 0.665 accuracy.
+    * back -- pass False. acti-motus expects the trunk z anterior, matching hub.
+      Converting it collapses lying detection (older adults lie recall 0.992 ->
+      0.000 with orientation=False).
+
+    In both cases the correctness check is that Activities(orientation=True) and
+    Activities(orientation=False) then agree, leaving flip detection to handle
+    genuinely mis-worn sensors rather than our own frame errors.
 
     Raises:
         ValueError: If the prefix's columns are absent.
@@ -73,7 +87,7 @@ def sensor_frame(raw: pd.DataFrame, prefix: str) -> pd.DataFrame:
     frame = raw[columns].copy()
     frame.columns = ["acc_x", "acc_y", "acc_z"]
 
-    return hub_to_acti(frame)
+    return hub_to_acti(frame) if to_acti_frame else frame
 
 
 def ground_truth_1s(raw: pd.DataFrame, table: str) -> pd.DataFrame:
