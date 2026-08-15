@@ -5,10 +5,10 @@ type: software
 authors:
   - family-names: Heidler
     given-names: Josef
-    email: heidlerjosef@gmail.com
+    email: jheidler@health.sdu.dk
 repository-code: "https://github.com/actimotus/actimotus-validation"
 doi: "10.5281/zenodo.21955041"
-license: MIT
+license: BSD-3-Clause
 version: 1.0.0
 date-released: "2026-08-15"
 abstract: >-

@@ -3,7 +3,8 @@ name = "actimotus-validation"
 version = "1.0.0"
 description = "Reproducibility package for the ActiMotus human activity recognition validation study"
 readme = "README.md"
-license = { text = "MIT" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "acti-motus==2.3.3",

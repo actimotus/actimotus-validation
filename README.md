@@ -43,23 +43,36 @@ source study listed on each dataset card.
 
 ## Results
 
-Overall agreement with video ground truth, ActiMotus 2.3.3 with its built-in
-`DEFAULT` thresholds:
+F1 per activity against video ground truth, ActiMotus 2.3.3 with its built-in
+`DEFAULT` thresholds, thigh sensor only:
 
-| Dataset | Thigh only | Thigh + trunk |
-|---|---|---|
-| Lendt, laboratory | 0.995 | — |
-| Lendt, free-living | 0.889 | — |
-| NTNU Adults | 0.824 | 0.880 |
-| NTNU Children | 0.831 | 0.848 |
-| NTNU Older Adults | 0.791 | 0.824 |
-| NTNU Walking Speeds | 0.795 | — |
+| Dataset | Lie | Sit | Stand | Shuffle | Walk | Stairs | Run | Cycle |
+|---|---|---|---|---|---|---|---|---|
+| Lendt, laboratory | 1.00 | 1.00 | 0.99 | — | 0.99 | — | 1.00 | 1.00 |
+| Lendt, free-living | 0.08 | 0.90 | 0.77 | 0.43 | 0.89 | 0.35 | 0.97 | 0.97 |
+| NTNU Adults | 0.08 | 0.79 | 0.79 | 0.38 | 0.84 | 0.62 | 0.93 | 0.89 |
+| NTNU Children | 0.79 | 0.83 | 0.81 | 0.33 | 0.88 | 0.45 | 0.82 | 0.88 |
+| NTNU Older Adults | 0.05 | 0.82 | 0.83 | 0.29 | 0.86 | 0.18 | — | — |
+| NTNU Walking Speeds | — | — | — | — | 0.79 | — | 0.98 | — |
 
-Per-activity precision, recall and F1 with 90% confidence intervals, computed per
-participant and then averaged across participants, are written to the `.xlsx`
-tables in `results/`, alongside confusion matrices as `.png`. Both the eight-activity
-vocabulary and the fused five-class collapse (sedentary, standing, walking, running,
-cycling) are reported.
+Walking speeds is the only protocol that separates fast walking from walking, since
+speed cannot be established from free-living video: F1 0.79 for walking and 0.65 for
+fast walking. Elsewhere the two are pooled as `walk`.
+
+Adding the lower-back sensor changes **only lying and sitting**; every other activity
+is unchanged to two decimals, since the trunk feeds only that discrimination:
+
+| Dataset | Lie, thigh | Lie, +trunk | Sit, thigh | Sit, +trunk |
+|---|---|---|---|---|
+| NTNU Adults | 0.08 | **0.90** | 0.79 | 0.91 |
+| NTNU Children | 0.79 | **0.90** | 0.83 | 0.93 |
+| NTNU Older Adults | 0.05 | **0.77** | 0.82 | 0.87 |
+
+Precision, recall and F1 with 90% confidence intervals, computed per participant and
+then averaged across participants, are written to the `.xlsx` tables in `results/`,
+alongside confusion matrices as `.png`. Both the eight-activity vocabulary and the
+fused five-class collapse (sedentary, standing, walking, running, cycling) are
+reported.
 
 ## Sensor orientation
 
@@ -72,11 +85,6 @@ required `to_acti_frame` argument rather than guessing:
 - **Back** — left as published. ActiMotus expects the trunk `z` anterior, which the
   hub frame already provides.
 
-The data itself is correctly worn: roll measured from video-labelled sitting is
-−2.4° (adults), +3.1° (children), +0.4° (older adults) and +13.7° (Lendt), with 157
-of 161 participants within 30° of zero and none near 180°. The rotation translates
-between coordinate conventions; it does not correct a mounting error.
-
 Automatic flip detection stays enabled, but only as a guard against genuinely
 mis-worn sensors — never as a substitute for the conversion. With the frames correct
 it changes nothing on 153 of 154 thigh recordings, and both `orientation=True` and
@@ -85,11 +93,6 @@ it changes nothing on 153 of 154 thigh recordings, and both `orientation=True` a
 
 ## Known limitations
 
-- The Lendt data carries an uncorrected +11–15° roll offset. ActiMotus's sitting
-  threshold has its cliff near 41°, so there is margin, but it is not zero. Only a
-  per-subject correction would be defensible and none is applied.
-- Walking-speeds roll was never measured; that protocol has no static postures, so
-  its orientation is verified by gait skew alone.
 - Thresholds are ActiMotus's built-in `DEFAULT` configuration, tuned by Bayesian
   optimization outside this package. Re-deriving them is out of scope.
 - Lying detection from the thigh alone fails for adults and older adults (recall
@@ -98,10 +101,18 @@ it changes nothing on 153 of 154 thigh recordings, and both `orientation=True` a
 
 ## Citing
 
-Cite this package via its DOI, [10.5281/zenodo.21955041](https://doi.org/10.5281/zenodo.21955041),
-which always resolves to the latest version. Cite the source datasets separately —
-see `CITATION.cff` and the individual dataset cards.
+Please cite the validation study, not this repository. The article is under review;
+its DOI will be added here on publication.
+
+If you need to reference the code specifically — for example to pin the exact version
+that produced a result — this package also has a DOI,
+[10.5281/zenodo.21955041](https://doi.org/10.5281/zenodo.21955041), which always
+resolves to the latest release.
+
+The datasets are cited separately. Each HuggingFace card names the study to
+attribute; CC-BY-4.0 requires it.
 
 ## License
 
-MIT. See `LICENSE`.
+BSD 3-Clause, matching [ActiMotus](https://github.com/actimotus/actimotus). See
+`LICENSE`.
