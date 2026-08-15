@@ -68,11 +68,28 @@ is unchanged to two decimals, since the trunk feeds only that discrimination:
 | NTNU Children | 0.79 | **0.90** | 0.83 | 0.93 |
 | NTNU Older Adults | 0.05 | **0.77** | 0.82 | 0.87 |
 
+### Fused classes
+
+Collapsing to five behaviour classes — sedentary (lying + sitting), standing
+(standing + shuffling), walking (walking + fast walking + stairs), running and
+cycling — gives F1, thigh sensor only:
+
+| Dataset | Sedentary | Standing | Walking | Running | Cycling |
+|---|---|---|---|---|---|
+| Lendt, laboratory | 1.00 | 0.99 | 0.99 | 1.00 | 1.00 |
+| Lendt, free-living | 0.99 | 0.83 | 0.91 | 0.97 | 0.97 |
+| NTNU Adults | 0.95 | 0.82 | 0.85 | 0.93 | 0.89 |
+| NTNU Children | 0.97 | 0.85 | 0.89 | 0.82 | 0.88 |
+| NTNU Older Adults | 0.99 | 0.84 | 0.91 | — | — |
+
+The lower-back sensor makes no difference here — every fused F1 is unchanged to two
+decimals with or without it. Its whole contribution is separating lying from sitting,
+and both collapse into sedentary.
+
 Precision, recall and F1 with 90% confidence intervals, computed per participant and
 then averaged across participants, are written to the `.xlsx` tables in `results/`,
-alongside confusion matrices as `.png`. Both the eight-activity vocabulary and the
-fused five-class collapse (sedentary, standing, walking, running, cycling) are
-reported.
+alongside confusion matrices as `.png`, for both the eight-activity and fused
+vocabularies.
 
 ## Sensor orientation
 
