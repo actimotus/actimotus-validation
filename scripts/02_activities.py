@@ -76,20 +76,28 @@ def classify(spec: DatasetSpec, features_dir: Path, use_back: bool) -> pd.DataFr
     return df
 
 
-def write_outputs(spec: DatasetSpec, df: pd.DataFrame, suffix: str, out: Path) -> list[str]:
-    """Write one prediction table, splitting by the registry's split_by column."""
+def write_outputs(
+    spec: DatasetSpec, df: pd.DataFrame, suffix: str, out: Path
+) -> list[tuple[str, int, int]]:
+    """Write one prediction table, splitting by the registry's split_by column.
+
+    Returns:
+        One (name, seconds, subjects) per file written -- counted per split part,
+        not for the whole frame, so a split dataset reports its real sizes.
+    """
     out.mkdir(parents=True, exist_ok=True)
     written = []
 
     if spec.split_by:
         for value, part in df.groupby(spec.split_by):
             name = f"{spec.name.split('_')[0]}_{str(value).replace('-', '_')}{suffix}"
-            part.drop(columns=[spec.split_by]).to_parquet(out / f"{name}.parquet")
-            written.append(name)
+            part = part.drop(columns=[spec.split_by])
+            part.to_parquet(out / f"{name}.parquet")
+            written.append((name, len(part), part["id"].nunique()))
     else:
         name = f"{spec.name}{suffix}"
         df.to_parquet(out / f"{name}.parquet")
-        written.append(name)
+        written.append((name, len(df), df["id"].nunique()))
 
     return written
 
@@ -124,9 +132,8 @@ def main() -> None:
             if use_back and spec.back is None:
                 continue
             df = classify(spec, features_dir, use_back)
-            written = write_outputs(spec, df, suffix, args.out)
-            for w in written:
-                print(f"{w}: {len(df):,} seconds, {df['id'].nunique()} subjects", flush=True)
+            for name_out, seconds, subjects in write_outputs(spec, df, suffix, args.out):
+                print(f"{name_out}: {seconds:,} seconds, {subjects} subjects", flush=True)
 
         revisions[name] = spec.revision
 
