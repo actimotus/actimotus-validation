@@ -137,6 +137,14 @@ def main() -> None:
 
         revisions[name] = spec.revision
 
+    # Merge rather than overwrite: a --dataset run must not leave a stamp
+    # claiming the directory holds only that dataset, when earlier runs put
+    # others there. Datasets rebuilt now supersede their previous entry.
+    try:
+        revisions = provenance.read(args.out).get("revisions", {}) | revisions
+    except provenance.StaleCacheError:
+        pass
+
     provenance.write(
         args.out,
         stage="activities",
