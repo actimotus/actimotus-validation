@@ -31,11 +31,11 @@ an error, not a source of plausible wrong numbers.
 
 | Dataset | Population | Sensors | HuggingFace | License |
 |---|---|---|---|---|
-| NTNU Adults | 31 adults | thigh + back, AX3 50 Hz | `josefheidler/har_adults_2021-harth` | MIT |
+| Lendt Adults | 35 adults | lateral thigh, SENS 12.5 Hz | `josefheidler/har_adults_2024-lendt` | CC-BY-4.0 |
 | NTNU Children | 46 typically-developing children | thigh + back, AX3 50 Hz | `josefheidler/har_children_2024-harth` | CC0-1.0 |
+| NTNU Adults | 31 adults | thigh + back, AX3 50 Hz | `josefheidler/har_adults_2021-harth` | MIT |
 | NTNU Older Adults | 18 adults aged 70–95 | thigh + back, AX3 50 Hz | `josefheidler/har_older-adults_2023-harth` | CC-BY-4.0 |
 | NTNU Walking Speeds | 24 adults | thigh + back, AX3 50 Hz | `josefheidler/har_ws_adults_2025-harth` | CC-BY-4.0 |
-| Lendt Adults | 35 adults | lateral thigh, SENS 12.5 Hz | `josefheidler/har_adults_2024-lendt` | CC-BY-4.0 |
 
 Revisions are pinned in `datasets.toml`. This package redistributes no data; the
 dataset licenses bind you at download, and CC-BY-4.0 requires attribution to the
@@ -50,8 +50,8 @@ F1 per activity against video ground truth, ActiMotus 2.3.3 with its built-in
 |---|---|---|---|---|---|---|---|---|
 | Lendt, laboratory | 1.00 | 1.00 | 0.99 | — | 0.99 | — | 1.00 | 1.00 |
 | Lendt, free-living | 0.08 | 0.90 | 0.77 | 0.43 | 0.89 | 0.35 | 0.97 | 0.97 |
-| NTNU Adults | 0.08 | 0.79 | 0.79 | 0.38 | 0.84 | 0.62 | 0.93 | 0.89 |
 | NTNU Children | 0.79 | 0.83 | 0.81 | 0.33 | 0.88 | 0.45 | 0.82 | 0.88 |
+| NTNU Adults | 0.08 | 0.79 | 0.79 | 0.38 | 0.84 | 0.62 | 0.93 | 0.89 |
 | NTNU Older Adults | 0.05 | 0.82 | 0.83 | 0.29 | 0.86 | 0.18 | — | — |
 | NTNU Walking Speeds | — | — | — | — | 0.79 | — | 0.98 | — |
 
@@ -64,8 +64,8 @@ is unchanged to two decimals, since the trunk feeds only that discrimination:
 
 | Dataset | Lie, thigh | Lie, +trunk | Sit, thigh | Sit, +trunk |
 |---|---|---|---|---|
-| NTNU Adults | 0.08 | **0.90** | 0.79 | 0.91 |
 | NTNU Children | 0.79 | **0.90** | 0.83 | 0.93 |
+| NTNU Adults | 0.08 | **0.90** | 0.79 | 0.91 |
 | NTNU Older Adults | 0.05 | **0.77** | 0.82 | 0.87 |
 
 ### Fused classes
@@ -78,8 +78,8 @@ cycling — gives F1, thigh sensor only:
 |---|---|---|---|---|---|
 | Lendt, laboratory | 1.00 | 0.99 | 0.99 | 1.00 | 1.00 |
 | Lendt, free-living | 0.99 | 0.83 | 0.91 | 0.97 | 0.97 |
-| NTNU Adults | 0.95 | 0.82 | 0.85 | 0.93 | 0.89 |
 | NTNU Children | 0.97 | 0.85 | 0.89 | 0.82 | 0.88 |
+| NTNU Adults | 0.95 | 0.82 | 0.85 | 0.93 | 0.89 |
 | NTNU Older Adults | 0.99 | 0.84 | 0.91 | — | — |
 
 The lower-back sensor makes no difference here — every fused F1 is unchanged to two

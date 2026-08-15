@@ -7,13 +7,13 @@
 # All published data is in the hub frame (x=up, y=right, z=forward). The pipeline
 # converts to the frame acti-motus expects on load; see frames.hub_to_acti.
 
-[ntnu_adults]
-hf_repo  = "josefheidler/har_adults_2021-harth"
-revision = "b894cc0f6b77eeec000d493edc1bfc0f27561a9a"
-vendor   = "Other"
-thigh    = "thigh_acc"
-back     = "back_acc"
-labels   = "ntnu"
+[lendt_adults]
+hf_repo  = "josefheidler/har_adults_2024-lendt"
+revision = "52c911ab718cb64d51cec386370aea51341f0b2e"
+vendor   = "Sens"
+thigh    = "acc"           # thigh only; already presented as anterior front-thigh
+labels   = "lendt"
+split_by = "condition"     # -> lendt_laboratory / lendt_free_living
 
 [ntnu_children]
 hf_repo  = "josefheidler/har_children_2024-harth"
@@ -23,6 +23,14 @@ thigh    = "thigh_acc"
 back     = "back_acc"
 labels   = "ntnu"
 filter   = { cohort = "td" }   # 46 typically-developing subjects, as in the paper
+
+[ntnu_adults]
+hf_repo  = "josefheidler/har_adults_2021-harth"
+revision = "b894cc0f6b77eeec000d493edc1bfc0f27561a9a"
+vendor   = "Other"
+thigh    = "thigh_acc"
+back     = "back_acc"
+labels   = "ntnu"
 
 [ntnu_older_adults]
 hf_repo  = "josefheidler/har_older-adults_2023-harth"
@@ -39,11 +47,3 @@ vendor   = "Other"
 thigh    = "thigh_acc"
 back     = "back_acc"
 labels   = "walking_speeds"
-
-[lendt_adults]
-hf_repo  = "josefheidler/har_adults_2024-lendt"
-revision = "52c911ab718cb64d51cec386370aea51341f0b2e"
-vendor   = "Sens"
-thigh    = "acc"           # thigh only; already presented as anterior front-thigh
-labels   = "lendt"
-split_by = "condition"     # -> lendt_laboratory / lendt_free_living
