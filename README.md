@@ -6,9 +6,11 @@ Reproduces the validation of the [ActiMotus](https://github.com/actimotus/actimo
 human activity recognition algorithm against video ground truth, on five public
 accelerometry datasets covering children, adults and older adults.
 
-Three commands regenerate every table and confusion matrix in the study. Nothing is
-precomputed: the data is fetched from HuggingFace at pinned revisions and the
+Three commands regenerate every table and confusion matrix in the study. No data is
+redistributed here: it is fetched from HuggingFace at pinned revisions and the
 algorithm comes from PyPI, so the package supplies only the pipeline between them.
+The generated tables and figures are committed under `results/` so they can be read
+without running anything; re-running overwrites them.
 
 ## Run it
 
@@ -58,6 +60,15 @@ F1 per activity against video ground truth, ActiMotus 2.3.3 with its built-in
 Walking speeds is the only protocol that separates fast walking from walking, since
 speed cannot be established from free-living video: F1 0.79 for walking and 0.65 for
 fast walking. Elsewhere the two are pooled as `walk`.
+
+![Confusion matrices for the three NTNU cohorts, thigh sensor only](results/ntnu_datasets.png)
+
+![Confusion matrices for the Lendt laboratory and free-living protocols](results/lendt_adults.png)
+
+Rows are normalised over the true class. The remaining figures — fused classes, the
+thigh + trunk configuration and walking speeds — are in `results/`, alongside the
+`.xlsx` tables and a `provenance.json` recording the ActiMotus version and dataset
+revisions that produced them.
 
 Adding the lower-back sensor changes **only lying and sitting**; every other activity
 is unchanged to two decimals, since the trunk feeds only that discrimination:

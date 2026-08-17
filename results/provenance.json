@@ -1,0 +1,16 @@
+{
+  "actimotus_version": "2.3.3",
+  "complete": true,
+  "created": "2026-08-15T17:23:58+00:00",
+  "dataset": "ntnu_datasets,ntnu_datasets_fused,ntnu_datasets_trunk,lendt_adults,lendt_adults_fused,ntnu_walking_speeds",
+  "outputs": [
+    "ntnu_datasets",
+    "ntnu_datasets_fused",
+    "ntnu_datasets_trunk",
+    "lendt_adults",
+    "lendt_adults_fused",
+    "ntnu_walking_speeds"
+  ],
+  "revision": "25b06764a6646a9f8bf2632287fb30b51bfdd43d",
+  "stage": "analysis"
+}
