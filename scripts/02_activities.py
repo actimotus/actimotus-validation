@@ -51,7 +51,7 @@ def classify(spec: DatasetSpec, features_dir: Path, use_back: bool) -> pd.DataFr
 
         activity, _ = activities.compute(thigh, trunk=trunk)
 
-        raw = data.read_subject(harmonized / f"{subject}.parquet")
+        raw = data.read_subject(data.subject_path(harmonized, subject))
         truth = data.ground_truth_1s(raw, spec.labels)
 
         joined = truth.join(activity, how="left").dropna(subset=["activity"])

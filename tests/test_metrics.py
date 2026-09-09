@@ -60,3 +60,29 @@ def test_get_table_formats_mean_and_interval():
     m = get_metrics(df, "ground_truth", "activity", "id", LABELS)
     table = get_table(summarize_values(m, ["metric", "label"]))
     assert table.loc["sit", "recall"] == "1.00 [1.00, 1.00]"
+
+
+def _mirrored(subject: str) -> pd.DataFrame:
+    """Every second called as the other class. Cohen's kappa is exactly -1."""
+    return pd.DataFrame({
+        "ground_truth": ["sit", "sit", "walk", "walk"],
+        "activity": ["walk", "walk", "sit", "sit"],
+        "id": subject,
+    })
+
+
+def test_kappa_interval_is_not_clipped_at_zero():
+    """Kappa runs -1 to 1, and worse than chance is a finding, not a floor.
+
+    Every other metric here is bounded below by zero, so the interval was
+    clipped to [0, 1] for all of them. That silently reports a classifier
+    performing worse than chance as though it merely scored zero. One
+    participant in `ntnu_walking_speeds` scores -0.084.
+    """
+    df = pd.concat([_mirrored(s) for s in "abc"])
+    m = get_metrics(df, "ground_truth", "activity", "id", LABELS)
+    s = summarize_values(m, ["metric", "label"])
+    kappa = s[s["metric"] == "kappa"].iloc[0]
+    assert kappa["mean"] == -1.0
+    assert kappa["lower"] == -1.0
+    assert kappa["upper"] == -1.0

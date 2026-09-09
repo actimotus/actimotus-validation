@@ -5,7 +5,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy import stats
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import (
+    accuracy_score,
+    cohen_kappa_score,
+    precision_recall_fscore_support,
+)
 
 
 def _get_metrics(true: pd.Series, pred: pd.Series, labels: list[str]) -> pd.DataFrame:
@@ -28,7 +32,19 @@ def _get_metrics(true: pd.Series, pred: pd.Series, labels: list[str]) -> pd.Data
         pred.values,  # type: ignore
     )
     accuracy = pd.DataFrame(accuracy, columns=metrics.columns, index=["accuracy"])
-    metrics = pd.concat([metrics, accuracy], axis=0)
+    # Cohen's kappa, UNWEIGHTED. Activity types have no order, so there is no
+    # defensible way to say one confusion is worse than another; the weighted
+    # form belongs to the intensity bands, which are ordered. Computed like
+    # accuracy -- one number for the whole recording, broadcast across the label
+    # columns -- and per participant like everything else here, so it is not the
+    # one number in the table aggregated a different way. Settled 2026-09-09;
+    # writing/structure.md, "THE METRICS ARE SETTLED".
+    kappa = cohen_kappa_score(
+        true.values,  # type: ignore
+        pred.values,  # type: ignore
+    )
+    kappa = pd.DataFrame(kappa, columns=metrics.columns, index=["kappa"])
+    metrics = pd.concat([metrics, accuracy, kappa], axis=0)
     metrics = metrics.melt(
         var_name="label",
         value_name="value",
@@ -118,14 +134,23 @@ def summarize_values(df: pd.DataFrame, group: list[str]) -> pd.DataFrame:
         sum = values.sum()
         mean = values.mean()
         std = values.std()
-        t = stats.t.ppf(0.95, df=n - 1)
+        # Two-sided 95%: ppf takes the ONE-SIDED quantile, so 0.975 is what a 95%
+        # interval needs. Was 0.95, which is a 90% interval, and Paper II published
+        # those brackets labelled 95%. Josef's ruling 2026-09-08: report a true 95%.
+        t = stats.t.ppf(0.975, df=n - 1)
         e = t * (std / np.sqrt(n))
         lower, upper = mean - e, mean + e
-        lower, upper = np.clip(lower, 0, 1), np.clip(upper, 0, 1)
 
         results = {}
         for col in group:
             results[col] = id[group.index(col)]
+
+        # KAPPA RUNS -1 TO 1, EVERY OTHER METRIC HERE RUNS 0 TO 1. The clip was
+        # written when only the bounded ones existed; applied to kappa it reports
+        # a participant performing worse than chance as though they had merely
+        # scored zero, and one participant in ntnu_walking_speeds scores -0.084.
+        floor = -1.0 if results.get("metric") == "kappa" else 0.0
+        lower, upper = np.clip(lower, floor, 1), np.clip(upper, floor, 1)
 
         results.update({
             "n": n,

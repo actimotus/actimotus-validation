@@ -1,7 +1,12 @@
 import pandas as pd
 import pytest
 
-from actimotus_validation.data import ground_truth_1s, sensor_frame
+from actimotus_validation.data import (
+    ground_truth_1s,
+    sensor_frame,
+    subject_files,
+    subject_path,
+)
 from actimotus_validation.registry import DatasetSpec
 
 DUAL = DatasetSpec(
@@ -79,3 +84,36 @@ def test_ground_truth_drops_unevaluated_labels():
     raw = pd.DataFrame({"label": ["jumping", "walk"], "variant": [None, None]}, index=idx)
     out = ground_truth_1s(raw, "ntnu")
     assert list(out["ground_truth"]) == ["walk"]
+
+
+def test_subject_files_finds_parquets_in_split_subdirectories(tmp_path):
+    """har_ee_adults_2024-lendt stores subjects under harmonized/train/ and
+    harmonized/test/ rather than flat. A flat glob finds none of them."""
+    harmonized = tmp_path / "harmonized"
+    (harmonized / "train").mkdir(parents=True)
+    (harmonized / "test").mkdir()
+    for split, name in (("train", "a"), ("test", "b")):
+        pd.DataFrame({"acc_x": [1.0]}).to_parquet(harmonized / split / f"{name}.parquet")
+
+    files = subject_files(DUAL, harmonized)
+
+    assert sorted(p.name for p in files) == ["a.parquet", "b.parquet"]
+
+
+def test_subject_path_finds_a_subject_inside_a_split_directory(tmp_path):
+    """Stage 2 resolves a subject by name, so it must look into the split
+    directories too, not only at the top of harmonized/."""
+    harmonized = tmp_path / "harmonized"
+    (harmonized / "test").mkdir(parents=True)
+    wanted = harmonized / "test" / "active-antelope.parquet"
+    pd.DataFrame({"acc_x": [1.0]}).to_parquet(wanted)
+
+    assert subject_path(harmonized, "active-antelope") == wanted
+
+
+def test_subject_path_names_the_subject_when_it_is_missing(tmp_path):
+    harmonized = tmp_path / "harmonized"
+    harmonized.mkdir()
+
+    with pytest.raises(FileNotFoundError, match="active-antelope"):
+        subject_path(harmonized, "active-antelope")

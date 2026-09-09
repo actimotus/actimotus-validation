@@ -97,3 +97,19 @@ def test_label_orders():
     assert LABELS_FUSED == ["sedentary", "stand", "walk", "run", "bicycle"]
     assert LABELS_WALKING_SPEEDS == ["shuffle", "walk", "fast-walk", "run"]
     assert set(FUSED) == {"lie", "sit", "shuffle", "stairs", "fast-walk"}
+
+
+def test_lendt_ee_drops_the_calibration_block():
+    """har_ee_adults_2024-lendt carries a pre-session static calibration block.
+
+    It is a sensor procedure, not a behaviour, so it is unevaluated -- but it must
+    be listed explicitly, or the table raises on it like any unknown label.
+    """
+    out = resolve_series(
+        "lendt_ee",
+        pd.Series(["calibration", "walk"]),
+        pd.Series([None, "slow"]),
+    )
+
+    assert out.isna().tolist() == [True, False]
+    assert out.iloc[1] == "walk"

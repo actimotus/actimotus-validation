@@ -26,9 +26,26 @@ def download(spec: DatasetSpec) -> Path:
     return Path(root) / "harmonized"
 
 
+def subject_path(harmonized: Path, subject: str) -> Path:
+    """Locate one subject's parquet, wherever the publisher put it.
+
+    har_ee_adults_2024-lendt files subjects under harmonized/train/ and
+    harmonized/test/; the others keep them flat. The split is an artefact of how
+    that dataset was published, not something this study evaluates, so it is
+    resolved here rather than modelled in the registry.
+    """
+    matches = sorted(harmonized.glob(f"**/{subject}.parquet"))
+    if not matches:
+        raise FileNotFoundError(f"no parquet for subject {subject!r} under {harmonized}")
+    if len(matches) > 1:
+        raise ValueError(f"subject {subject!r} appears more than once: {matches}")
+
+    return matches[0]
+
+
 def subject_files(spec: DatasetSpec, harmonized: Path) -> list[Path]:
     """Subject parquet files for a dataset, honouring the registry's filter."""
-    files = sorted(harmonized.glob("*.parquet"))
+    files = sorted(harmonized.glob("**/*.parquet"))
     if not files:
         raise ValueError(f"no parquet files under {harmonized} for {spec.name}")
 

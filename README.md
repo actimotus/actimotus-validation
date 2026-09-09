@@ -97,7 +97,7 @@ The lower-back sensor makes no difference here — every fused F1 is unchanged t
 decimals with or without it. Its whole contribution is separating lying from sitting,
 and both collapse into sedentary.
 
-Precision, recall and F1 with 90% confidence intervals, computed per participant and
+Precision, recall and F1 with 95% confidence intervals, computed per participant and
 then averaged across participants, are written to the `.xlsx` tables in `results/`,
 alongside confusion matrices as `.png`, for both the eight-activity and fused
 vocabularies.

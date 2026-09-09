@@ -33,7 +33,7 @@ def build_report(
 ) -> tuple[alt.LayerChart, pd.DataFrame]:
     """Metrics table and confusion matrix for one dataset.
 
-    Metrics are computed per subject and then averaged across subjects with 90%
+    Metrics are computed per subject and then averaged across subjects with 95%
     confidence intervals, so every participant weighs equally regardless of
     recording length. The confusion matrix pools all seconds.
 

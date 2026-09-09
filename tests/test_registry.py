@@ -7,7 +7,7 @@ from actimotus_validation.registry import DatasetSpec, load_registry
 REGISTRY = Path(__file__).parent.parent / "datasets.toml"
 
 
-def test_loads_all_five_datasets():
+def test_loads_all_six_datasets():
     specs = load_registry(REGISTRY)
     assert set(specs) == {
         "ntnu_adults",
@@ -15,6 +15,7 @@ def test_loads_all_five_datasets():
         "ntnu_older_adults",
         "ntnu_walking_speeds",
         "lendt_adults",
+        "lendt_energy",
     }
 
 

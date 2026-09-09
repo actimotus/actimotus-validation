@@ -38,6 +38,31 @@ LENDT = [
     ("lendt_laboratory", "Laboratory", PURPLE),
     ("lendt_free_living", "Free-living", GREEN),
 ]
+# The energy-expenditure cohort is laboratory only: treadmill and ergometer
+# stages against indirect calorimetry, no free-living arm.
+LENDT_ENERGY = [
+    ("lendt_energy", "Energy Expenditure", PURPLE),
+]
+WALKING_SPEEDS = [
+    ("ntnu_walking_speeds", "Walking Speeds", GREEN),
+]
+
+# Every output stem, as (panel, reported labels, fused). This is the single place
+# a dataset becomes results: a dataset absent from here is downloaded, classified
+# and written to a prediction table, and then silently produces nothing.
+# tests/test_analysis_panels.py holds that invariant.
+PANELS: dict[str, tuple[list[tuple[str, str, str]], list[str], bool]] = {
+    "ntnu_datasets": (NTNU, LABELS, False),
+    "ntnu_datasets_fused": (NTNU, LABELS_FUSED, True),
+    "ntnu_datasets_trunk": (
+        [(f"{n}_trunk", t, c) for n, t, c in NTNU], LABELS, False
+    ),
+    "lendt_adults": (LENDT, LABELS, False),
+    "lendt_adults_fused": (LENDT, LABELS_FUSED, True),
+    "lendt_energy": (LENDT_ENERGY, LABELS, False),
+    "lendt_energy_fused": (LENDT_ENERGY, LABELS_FUSED, True),
+    "ntnu_walking_speeds": (WALKING_SPEEDS, LABELS_WALKING_SPEEDS, False),
+}
 
 
 def load(predictions: Path, name: str) -> pd.DataFrame:
@@ -97,44 +122,13 @@ def main() -> None:
 
     args.results.mkdir(parents=True, exist_ok=True)
 
-    builders = {
-        "ntnu_datasets": lambda: grouped(
-            args.predictions, args.results, NTNU, LABELS, "ntnu_datasets"
-        ),
-        "ntnu_datasets_fused": lambda: grouped(
-            args.predictions, args.results, NTNU, LABELS_FUSED, "ntnu_datasets_fused", fused=True
-        ),
-        "ntnu_datasets_trunk": lambda: grouped(
-            args.predictions,
-            args.results,
-            [(f"{n}_trunk", t, c) for n, t, c in NTNU],
-            LABELS,
-            "ntnu_datasets_trunk",
-        ),
-        "lendt_adults": lambda: grouped(
-            args.predictions, args.results, LENDT, LABELS, "lendt_adults"
-        ),
-        "lendt_adults_fused": lambda: grouped(
-            args.predictions, args.results, LENDT, LABELS_FUSED, "lendt_adults_fused", fused=True
-        ),
-        "ntnu_walking_speeds": lambda: grouped(
-            args.predictions,
-            args.results,
-            [("ntnu_walking_speeds", "Walking Speeds", GREEN)],
-            LABELS_WALKING_SPEEDS,
-            "ntnu_walking_speeds",
-        ),
-    }
+    if args.only and args.only not in PANELS:
+        parser.error(f"unknown output {args.only!r}. Known: {list(PANELS)}")
 
-    if args.only:
-        if args.only not in builders:
-            parser.error(f"unknown output {args.only!r}. Known: {list(builders)}")
-        builders[args.only]()
-        built = [args.only]
-    else:
-        for build in builders.values():
-            build()
-        built = list(builders)
+    built = [args.only] if args.only else list(PANELS)
+    for stem in built:
+        panel, labels, fused = PANELS[stem]
+        grouped(args.predictions, args.results, panel, labels, stem, fused=fused)
 
     upstream = provenance.read(args.predictions)
     provenance.write(
@@ -144,7 +138,7 @@ def main() -> None:
         # results/ are from an earlier run and may be stale or absent.
         dataset=",".join(built),
         revision=upstream["revision"],
-        extra={"outputs": built, "complete": len(built) == len(builders)},
+        extra={"outputs": built, "complete": len(built) == len(PANELS)},
     )
 
 

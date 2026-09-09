@@ -47,3 +47,10 @@ vendor   = "Other"
 thigh    = "thigh_acc"
 back     = "back_acc"
 labels   = "walking_speeds"
+
+[lendt_energy]
+hf_repo  = "josefheidler/har_ee_adults_2024-lendt"
+revision = "6108092b857164b2f6fe28fd06bb16536c5e753c"   # v1.1.1, SHA resolved 2026-09-07
+vendor   = "Other"         # Axivity AX6, 100 Hz
+thigh    = "acc"           # thigh only; published in the anterior front-thigh frame
+labels   = "lendt_ee"      # as `lendt`, plus the pre-session calibration block

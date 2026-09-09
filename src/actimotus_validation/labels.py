@@ -84,9 +84,19 @@ _WALKING_SPEEDS: dict[tuple[str | None, str | None], str | None] = {
     ("run", None): "run",
 }
 
+# The energy-expenditure cohort shares Lendt's activity vocabulary and adds a
+# pre-session static calibration block: six sensor orientations on a cube, before
+# the protocol starts. It is a sensor procedure, not a behaviour, so it is dropped
+# rather than evaluated -- but it is listed, because an absent pair raises.
+_LENDT_EE: dict[tuple[str | None, str | None], str | None] = {
+    **_LENDT,
+    ("calibration", None): None,
+}
+
 LABEL_TABLES = {
     "ntnu": _NTNU,
     "lendt": _LENDT,
+    "lendt_ee": _LENDT_EE,
     "walking_speeds": _WALKING_SPEEDS,
 }
 
