@@ -1,8 +1,8 @@
 {
   "actimotus_version": "2.3.3",
   "complete": true,
-  "created": "2026-09-09T16:14:39+00:00",
-  "dataset": "ntnu_datasets,ntnu_datasets_fused,ntnu_datasets_trunk,lendt_adults,lendt_adults_fused,lendt_energy,lendt_energy_fused,ntnu_walking_speeds",
+  "created": "2026-09-10T13:36:53+00:00",
+  "dataset": "ntnu_datasets,ntnu_datasets_fused,ntnu_datasets_trunk,lendt_adults,lendt_adults_fused,lendt_energy,lendt_energy_fused,ntnu_walking_speeds,ntnu_datasets_postures",
   "outputs": [
     "ntnu_datasets",
     "ntnu_datasets_fused",
@@ -11,7 +11,8 @@
     "lendt_adults_fused",
     "lendt_energy",
     "lendt_energy_fused",
-    "ntnu_walking_speeds"
+    "ntnu_walking_speeds",
+    "ntnu_datasets_postures"
   ],
   "revision": "cb99d04516ea8da85950054938e152f74265420b",
   "stage": "analysis"

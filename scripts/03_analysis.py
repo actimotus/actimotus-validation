@@ -17,7 +17,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from actimotus_validation import provenance  # noqa: E402
 from actimotus_validation.labels import LABELS, LABELS_FUSED, LABELS_WALKING_SPEEDS  # noqa: E402
-from actimotus_validation.reports import build_report, to_fused  # noqa: E402
+from actimotus_validation.reports import (  # noqa: E402
+    build_comparison,
+    build_report,
+    to_fused,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 PREDICTIONS = ROOT / "cache" / "predictions"
@@ -64,6 +68,30 @@ PANELS: dict[str, tuple[list[tuple[str, str, str]], list[str], bool]] = {
     "ntnu_walking_speeds": (WALKING_SPEEDS, LABELS_WALKING_SPEEDS, False),
 }
 
+# Lying and sitting are what the second sensor was added for: the thigh is at
+# much the same angle in both, so daytime lying is largely called sitting, and a
+# sensor on the back sees the trunk go horizontal. Only the NTNU cohorts can
+# supply this -- both Lendt datasets are thigh-only.
+POSTURES = ["lie", "sit"]
+
+# (entries as (thigh table, title), reported labels, behaviours to report).
+COMPARISONS: dict[str, tuple[list[tuple[str, str]], list[str], list[str]]] = {
+    "ntnu_datasets_postures": ([(n, t) for n, t, _ in NTNU], LABELS, POSTURES),
+}
+
+
+def sheet_name(title: str) -> str:
+    """Excel allows 31 characters, and a clash is silently destructive.
+
+    `title[:31]` collides with `(title + " matrix")[:31]` the moment a title
+    reaches 31 characters, and openpyxl writes both into one sheet without a
+    word. Truncating the stem instead keeps the discriminating suffix.
+    """
+    if title.endswith(" matrix"):
+        return f"{title.removesuffix(' matrix')[:24]} matrix"
+
+    return title[:31]
+
 
 def load(predictions: Path, name: str) -> pd.DataFrame:
     path = predictions / f"{name}.parquet"
@@ -92,11 +120,16 @@ def grouped(
         df = load(predictions, name)
         if fused:
             df = to_fused(df)
-        chart, table = build_report(
+        chart, table, matrix = build_report(
             df, title=title, labels=labels, hide_yaxis=i > 0, color=color
         )
         charts.append(chart)
         tables[title] = table
+        # The averaged matrix goes in beside its table, indexed rather than
+        # drawn. The thesis redraws these grids itself in matplotlib and needs
+        # the numbers; without this sheet the only averaged figures leaving the
+        # pipeline are pixels.
+        tables[f"{title} matrix"] = matrix
 
     combined = charts[0]
     for chart in charts[1:]:
@@ -108,9 +141,44 @@ def grouped(
 
     with pd.ExcelWriter(results / f"{stem}.xlsx") as writer:
         for title, table in tables.items():
-            table.to_excel(writer, sheet_name=title[:31])
+            # The matrix sheets are flat: writing `true`/`pred` as a MultiIndex
+            # makes Excel blank the repeated key, and reading the sheet back
+            # then gives NaN for seven rows in eight.
+            table.to_excel(
+                writer,
+                sheet_name=sheet_name(title),
+                index=not title.endswith(" matrix"),
+            )
 
     print(f"{stem}.png / {stem}.xlsx", flush=True)
+
+
+def compare(
+    predictions: Path,
+    results: Path,
+    entries: list[tuple[str, str]],
+    labels: list[str],
+    focus: list[str],
+    stem: str,
+) -> None:
+    """One workbook: what adding the back sensor does to lie and sit.
+
+    A sheet per dataset, each carrying the thigh-only value, the thigh-and-back
+    value, both with 95% intervals, and the difference. No figure -- the finding
+    is a handful of numbers and a matrix would spend a half-page saying it.
+    """
+    tables = {}
+
+    for name, title in entries:
+        thigh = load(predictions, name)
+        trunk = load(predictions, f"{name}_trunk")
+        tables[title] = build_comparison(thigh, trunk, labels=labels, focus=focus)
+
+    with pd.ExcelWriter(results / f"{stem}.xlsx") as writer:
+        for title, table in tables.items():
+            table.to_excel(writer, sheet_name=sheet_name(title), index=False)
+
+    print(f"{stem}.xlsx", flush=True)
 
 
 def main() -> None:
@@ -122,13 +190,18 @@ def main() -> None:
 
     args.results.mkdir(parents=True, exist_ok=True)
 
-    if args.only and args.only not in PANELS:
-        parser.error(f"unknown output {args.only!r}. Known: {list(PANELS)}")
+    known = list(PANELS) + list(COMPARISONS)
+    if args.only and args.only not in known:
+        parser.error(f"unknown output {args.only!r}. Known: {known}")
 
-    built = [args.only] if args.only else list(PANELS)
+    built = [args.only] if args.only else known
     for stem in built:
-        panel, labels, fused = PANELS[stem]
-        grouped(args.predictions, args.results, panel, labels, stem, fused=fused)
+        if stem in PANELS:
+            panel, labels, fused = PANELS[stem]
+            grouped(args.predictions, args.results, panel, labels, stem, fused=fused)
+        else:
+            entries, labels, focus = COMPARISONS[stem]
+            compare(args.predictions, args.results, entries, labels, focus, stem)
 
     upstream = provenance.read(args.predictions)
     provenance.write(
@@ -138,7 +211,7 @@ def main() -> None:
         # results/ are from an earlier run and may be stale or absent.
         dataset=",".join(built),
         revision=upstream["revision"],
-        extra={"outputs": built, "complete": len(built) == len(PANELS)},
+        extra={"outputs": built, "complete": len(built) == len(known)},
     )
 
 

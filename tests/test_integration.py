@@ -53,7 +53,7 @@ def test_three_stages_run_end_to_end(tmp_path):
     from actimotus_validation.labels import LABELS
     from actimotus_validation.reports import build_report
 
-    chart, table = build_report(df, title="Smoke", labels=LABELS)
+    chart, table, matrix = build_report(df, title="Smoke", labels=LABELS)
     chart.save(str(results / "smoke.png"), scale_factor=1)
     assert (results / "smoke.png").stat().st_size > 0
     assert list(table.columns) == LABELS

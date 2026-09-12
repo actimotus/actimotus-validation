@@ -69,25 +69,51 @@ def get_metrics(
     return metrics
 
 
-def _get_scores(true: pd.Series, pred: pd.Series) -> pd.DataFrame:
-    total = pd.crosstab(
-        index=true,
-        columns=pred,
-        dropna=False,
-    ).sum(axis=1)
+def _get_scores(true: pd.Series, pred: pd.Series, labels: list[str]) -> pd.DataFrame:
+    """One participant's confusion matrix, each row divided by its own total.
 
-    df = pd.crosstab(
-        index=true,
-        columns=pred,
-        dropna=False,
-        normalize="index",
-    )
-    df["support"] = total
-    df = df.melt(var_name="pred", value_name="value", ignore_index=False).reset_index(
-        names="true"
-    )
+    Reindexed onto the full `labels` grid so every participant contributes the
+    same cells. Without that the average across people would be taken over a
+    moving denominator -- a cell would be the mean of however many participants
+    happened to produce it.
 
-    return df
+    Two kinds of empty cell are deliberately different:
+
+    * The participant performed the true class but was never predicted this
+      column. That is a real **0.0** and belongs in the mean.
+    * The participant never performed the true class at all. The whole row is
+      **NaN**, so it says nothing about that behaviour and `summarize_values`
+      drops it rather than dragging the mean toward zero. Same rule as
+      `_get_metrics`.
+
+    EACH ROW IS DIVIDED BY THE PARTICIPANT'S FULL SUPPORT FOR THAT CLASS, not by
+    the part of it that landed in a reported column. A prediction outside
+    `labels` -- `ntnu_children` holds 21 seconds of `non-wear` -- therefore
+    counts against the row, which then sums to less than 1 by exactly that
+    share. Normalising by the reported columns alone divides the error away and
+    lifts the diagonal above the recall in the table beside it. That matters
+    because the thesis prints no sensitivity column, on the ground that it is
+    already the diagonal: the two have to be the same number or dropping the
+    column loses information rather than saving a duplicate.
+    `tests/test_metrics.py::test_diagonal_equals_the_tables_recall` holds it.
+
+    This is where the function differs from
+    `sklearn.metrics.confusion_matrix(labels=..., normalize="true")`, which
+    drops those seconds entirely.
+    """
+    matrix = pd.crosstab(index=true, columns=pred, dropna=False)
+
+    # Before restricting the columns, so out-of-label predictions stay in the
+    # denominator. Reindexing gives NaN for a class this participant never
+    # performed, and NaN/NaN leaves the whole row missing without a special case.
+    total = matrix.sum(axis=1).reindex(labels)
+
+    matrix = matrix.reindex(index=labels, columns=labels, fill_value=0)
+    matrix = matrix.div(total, axis=0)
+
+    df = matrix.melt(var_name="pred", value_name="value", ignore_index=False)
+
+    return df.reset_index(names="true")
 
 
 def get_scores(
@@ -95,27 +121,64 @@ def get_scores(
     true: str,
     pred: str,
     group: str,
+    labels: list[str],
 ) -> pd.DataFrame:
+    """Per-participant row-normalised confusion matrices, stacked long.
+
+    Feed to `summarize_values(scores, ["true", "pred"])` for the averaged matrix
+    the thesis reports: each person's grid normalised by its own rows, then
+    averaged over people, so the diagonal reads as mean sensitivity and every
+    cell carries a 95% interval. The published papers pool all seconds instead,
+    which lets one long recording outvote several short ones.
+    """
     scores = []
 
     for id, temp in df.groupby(group):
-        results = _get_scores(temp[true], temp[pred])
+        results = _get_scores(temp[true], temp[pred], labels)
         results["id"] = id
         scores.append(results)
 
-    scores = pd.concat(scores, axis=0)
+    return pd.concat(scores, axis=0, ignore_index=True)
 
-    return scores
+
+def _mean_ci(row: pd.Series) -> str:
+    """Render one cell, and never render the string "nan".
+
+    Three states, and the page has to tell them apart:
+
+    * No participant contributed -- nobody performed the behaviour, or the
+      classifier never emitted it. The cell is EMPTY.
+    * One participant contributed. The mean is real and stays; the interval is
+      `t.ppf(0.975, df=0)`, which is NaN, and is dropped. A bare number is
+      therefore the visible mark of a cell resting on a single person, and the
+      table's note owes the reason.
+    * Two or more. Mean and interval, as always.
+
+    Josef 2026-09-10: "We shold not get nan, nan numbers ... maybe we could kind
+    of write it as empty, and in the note write reason maybe?"
+    """
+    if pd.isna(row["mean"]):
+        return ""
+
+    if pd.isna(row["lower"]) or pd.isna(row["upper"]):
+        return f"{row['mean']:.2f}"
+
+    return f"{row['mean']:.2f} [{row['lower']:.2f}, {row['upper']:.2f}]"
 
 
 def get_mean_ci(df: pd.DataFrame) -> pd.Series:
-    return df.apply(
-        lambda x: f"{x['mean']:.2f} [{x['lower']:.2f}, {x['upper']:.2f}]", axis=1
-    )
+    return df.apply(_mean_ci, axis=1)
 
 
 def get_mean_std(df: pd.DataFrame) -> pd.Series:
-    return df.apply(lambda x: f"{x['mean']:.2f} ± {x['std']:.2f}", axis=1)
+    return df.apply(
+        lambda x: ""
+        if pd.isna(x["mean"])
+        else f"{x['mean']:.2f} ± {x['std']:.2f}"
+        if pd.notna(x["std"])
+        else f"{x['mean']:.2f}",
+        axis=1,
+    )
 
 
 def summarize_values(df: pd.DataFrame, group: list[str]) -> pd.DataFrame:
@@ -178,7 +241,21 @@ def get_table(df: pd.DataFrame):
     other["n"] = df.loc[support, "n"]
     other["n_total"] = df.loc[support, "n_total"]
     other.set_index("label", inplace=True)
+
+    labels = df["label"].unique()
+    # A behaviour NOBODY performed has no support row at all, so it would leave
+    # a hole in the one column the thesis prints beside each behaviour. Zero
+    # people is a fact and NaN is a hole. `n_total` is the cohort size and is
+    # the same for every row, so it is never genuinely missing.
+    other = other.reindex(labels)
+    other["n"] = other["n"].fillna(0).astype(int)
+    other["n_total"] = other["n_total"].ffill().bfill().astype(int)
+    other["support_total"] = other["support_total"].fillna(0.0)
+
+    # Reindex BEFORE filling: a behaviour nobody performed has no row in the
+    # pivot at all, so concatenating `other` afterwards would put the hole back.
     df = df.pivot(index="label", columns="metric", values="table")
+    df = df.reindex(labels).fillna("")
     df = pd.concat([df, other], axis=1)
 
     return df

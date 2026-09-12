@@ -1,16 +1,25 @@
-"""Confusion matrix charts, normalized over the true class."""
+"""Confusion matrix charts, averaged over participants.
+
+Takes the frame `summarize_values(get_scores(...), ["true", "pred"])` produces:
+each participant's grid normalised by its own rows, then averaged over people,
+so the diagonal reads as mean sensitivity. It used to pool every second through
+`sklearn.metrics.confusion_matrix`, which lets one long recording outvote
+several short ones.
+
+The 95% interval travels in the chart data as `Lower` and `Upper` but is NOT
+drawn. An eight-class grid with two lines in every cell is unreadable at this
+size, and the thesis redraws these matrices itself in matplotlib from the
+workbook. The repository's own figures stay single-line.
+"""
 
 from __future__ import annotations
 
 import altair as alt
-import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
 
 
 def get_confusion_matrix(
-    true: pd.Series,
-    pred: pd.Series,
+    matrix: pd.DataFrame,
     labels: list[str],
     title: str = "Confusion Matrix",
     color: str = "purples",
@@ -19,17 +28,39 @@ def get_confusion_matrix(
     hide_yaxis: bool = False,
     size: tuple[int, int] = (250, 250),
 ) -> alt.LayerChart:
-    matrix = confusion_matrix(true, pred, labels=labels, normalize="true").round(2)
-    matrix = np.flip(matrix, axis=1)
+    """Draw one averaged confusion matrix.
+
+    Args:
+        matrix: Long frame with `true`, `pred`, `mean`, `lower` and `upper`.
+        labels: Reported classes, in display order.
+    """
+    # Every cell has to exist or the grid grows holes. `summarize_values` drops a
+    # group whose value is NaN for every participant, which is what a behaviour
+    # nobody performed looks like -- the empty shuffle and stairs rows of the
+    # laboratory panels. Those draw as an unlabelled 0 cell, exactly as they did
+    # when sklearn returned 0 for an all-zero row.
+    grid = pd.MultiIndex.from_product(
+        [labels, labels], names=["true", "pred"]
+    ).to_frame(index=False)
+
+    # A dataset holding none of its reported classes leaves `summarize_values`
+    # with nothing to group, and it returns a (0, 0) frame with no columns at
+    # all -- merging on `true` and `pred` then raises rather than drawing an
+    # empty grid.
+    if matrix.empty:
+        matrix = grid.assign(mean=float("nan"), lower=float("nan"), upper=float("nan"))
+
+    df = grid.merge(matrix, on=["true", "pred"], how="left")
+
+    df = pd.DataFrame({
+        "True": df["true"].str.capitalize(),
+        "Predicted": df["pred"].str.capitalize(),
+        "Value": df["mean"].fillna(0.0).round(2),
+        "Lower": df["lower"].fillna(0.0).round(2),
+        "Upper": df["upper"].fillna(0.0).round(2),
+    })
 
     labels = [label.capitalize() for label in labels]
-    df = (
-        pd
-        .DataFrame(matrix, index=labels, columns=labels[::-1])
-        .reset_index()
-        .melt(id_vars="index")
-    )
-    df.columns = ["True", "Predicted", "Value"]
 
     title_size = 14
     axes_title_size = 12
