@@ -16,10 +16,11 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from actimotus_validation import provenance  # noqa: E402
-from actimotus_validation.labels import LABELS, LABELS_FUSED, LABELS_WALKING_SPEEDS  # noqa: E402
+from actimotus_validation.labels import LABELS, LABELS_FUSED, LABELS_SPLIT  # noqa: E402
 from actimotus_validation.reports import (  # noqa: E402
     build_comparison,
     build_report,
+    to_activities,
     to_fused,
 )
 
@@ -50,22 +51,48 @@ LENDT_ENERGY = [
 WALKING_SPEEDS = [
     ("ntnu_walking_speeds", "Walking Speeds", GREEN),
 ]
+# Treadmill walking at 2-5 km/h, scored for its paces. Not used to tune them.
+GAIT = [
+    ("lendt_gait", "Gait", PURPLE),
+]
 
-# Every output stem, as (panel, reported labels, fused). This is the single place
-# a dataset becomes results: a dataset absent from here is downloaded, classified
-# and written to a prediction table, and then silently produces nothing.
+# acti-motus 2.4.0 reports three walking paces. One rule for every table: walking
+# is scored split where the protocol measured a speed, and folded into walk where
+# it did not. Every walk in these tables carries a measured speed band; a walk
+# without one would resolve to plain `walk` and be scored as `normal`.
+SPLIT = {"lendt_laboratory", "lendt_energy", "ntnu_walking_speeds", "lendt_gait"}
+
+
+def labels_for(table: str, mode: str) -> list[str]:
+    """The reported vocabulary of one table under a panel's mode."""
+    if mode == "fused":
+        return LABELS_FUSED
+
+    return LABELS_SPLIT if table.removesuffix("_trunk") in SPLIT else LABELS
+
+
+def prepare(df: pd.DataFrame, table: str, mode: str) -> pd.DataFrame:
+    """Fold the labels as `labels_for` reports them."""
+    if mode == "fused":
+        return to_fused(df)
+
+    return df if table.removesuffix("_trunk") in SPLIT else to_activities(df)
+
+
+# Every output stem, as (panel, mode). This is the single place a dataset becomes
+# results: a dataset absent from here is downloaded, classified and written to a
+# prediction table, and then silently produces nothing.
 # tests/test_analysis_panels.py holds that invariant.
-PANELS: dict[str, tuple[list[tuple[str, str, str]], list[str], bool]] = {
-    "ntnu_datasets": (NTNU, LABELS, False),
-    "ntnu_datasets_fused": (NTNU, LABELS_FUSED, True),
-    "ntnu_datasets_trunk": (
-        [(f"{n}_trunk", t, c) for n, t, c in NTNU], LABELS, False
-    ),
-    "lendt_adults": (LENDT, LABELS, False),
-    "lendt_adults_fused": (LENDT, LABELS_FUSED, True),
-    "lendt_energy": (LENDT_ENERGY, LABELS, False),
-    "lendt_energy_fused": (LENDT_ENERGY, LABELS_FUSED, True),
-    "ntnu_walking_speeds": (WALKING_SPEEDS, LABELS_WALKING_SPEEDS, False),
+PANELS: dict[str, tuple[list[tuple[str, str, str]], str]] = {
+    "ntnu_datasets": (NTNU, "activities"),
+    "ntnu_datasets_fused": (NTNU, "fused"),
+    "ntnu_datasets_trunk": ([(f"{n}_trunk", t, c) for n, t, c in NTNU], "activities"),
+    "lendt_adults": (LENDT, "activities"),
+    "lendt_adults_fused": (LENDT, "fused"),
+    "lendt_energy": (LENDT_ENERGY, "activities"),
+    "lendt_energy_fused": (LENDT_ENERGY, "fused"),
+    "ntnu_walking_speeds": (WALKING_SPEEDS, "activities"),
+    "lendt_gait": (GAIT, "activities"),
 }
 
 # Lying and sitting are what the second sensor was added for: the thigh is at
@@ -105,9 +132,8 @@ def grouped(
     predictions: Path,
     results: Path,
     entries: list[tuple[str, str, str]],
-    labels: list[str],
     stem: str,
-    fused: bool = False,
+    mode: str = "activities",
 ) -> None:
     """Build one side-by-side figure and one multi-sheet workbook.
 
@@ -115,13 +141,17 @@ def grouped(
     the Lendt panel pairs a purple laboratory matrix with a green free-living one.
     """
     charts, tables = [], {}
+    vocabularies = [labels_for(name, mode) for name, _t, _c in entries]
+    # Matrices share one row axis only when they share one vocabulary. The
+    # Lendt figure pairs a split laboratory with a merged free-living arm, and on
+    # a shared axis the free-living rows land on the laboratory's labels.
+    shared = all(v == vocabularies[0] for v in vocabularies)
 
     for i, (name, title, color) in enumerate(entries):
-        df = load(predictions, name)
-        if fused:
-            df = to_fused(df)
+        labels = vocabularies[i]
+        df = prepare(load(predictions, name), name, mode)
         chart, table, matrix = build_report(
-            df, title=title, labels=labels, hide_yaxis=i > 0, color=color
+            df, title=title, labels=labels, hide_yaxis=shared and i > 0, color=color
         )
         charts.append(chart)
         tables[title] = table
@@ -135,7 +165,9 @@ def grouped(
     for chart in charts[1:]:
         combined = combined | chart
 
-    combined.resolve_scale(color="independent").save(
+    combined.resolve_scale(
+        color="independent", y="shared" if shared else "independent"
+    ).save(
         str(results / f"{stem}.png"), scale_factor=4
     )
 
@@ -170,8 +202,8 @@ def compare(
     tables = {}
 
     for name, title in entries:
-        thigh = load(predictions, name)
-        trunk = load(predictions, f"{name}_trunk")
+        thigh = to_activities(load(predictions, name))
+        trunk = to_activities(load(predictions, f"{name}_trunk"))
         tables[title] = build_comparison(thigh, trunk, labels=labels, focus=focus)
 
     with pd.ExcelWriter(results / f"{stem}.xlsx") as writer:
@@ -197,8 +229,8 @@ def main() -> None:
     built = [args.only] if args.only else known
     for stem in built:
         if stem in PANELS:
-            panel, labels, fused = PANELS[stem]
-            grouped(args.predictions, args.results, panel, labels, stem, fused=fused)
+            panel, mode = PANELS[stem]
+            grouped(args.predictions, args.results, panel, stem, mode=mode)
         else:
             entries, labels, focus = COMPARISONS[stem]
             compare(args.predictions, args.results, entries, labels, focus, stem)

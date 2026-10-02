@@ -30,7 +30,7 @@ def _panelled_tables(module) -> set[str]:
     """Every prediction table named by any panel, across every output stem."""
     return {
         table
-        for panel, _labels, _fused in module.PANELS.values()
+        for panel, _mode in module.PANELS.values()
         for table, _title, _colour in panel
     }
 
@@ -49,6 +49,87 @@ def test_every_unsplit_dataset_reaches_a_panel():
     )
 
     assert missing == [], f"registered but never analysed: {missing}"
+
+
+def test_every_panel_has_a_known_mode():
+    module = _analysis()
+    for stem, (_panel, mode) in module.PANELS.items():
+        assert mode in ("activities", "fused"), stem
+
+
+def test_walking_is_split_exactly_where_speed_was_measured():
+    """Josef, 2026-10-02: one label set everywhere, walking split where a speed
+    was measured and merged where it was not."""
+    module = _analysis()
+    assert module.SPLIT == {
+        "lendt_laboratory", "lendt_energy", "ntnu_walking_speeds", "lendt_gait",
+    }
+
+
+def test_labels_for_an_entry():
+    from actimotus_validation.labels import LABELS, LABELS_FUSED, LABELS_SPLIT
+
+    module = _analysis()
+    assert module.labels_for("lendt_energy", "activities") == LABELS_SPLIT
+    assert module.labels_for("lendt_free_living", "activities") == LABELS
+    assert module.labels_for("lendt_energy", "fused") == LABELS_FUSED
+
+
+def test_a_merged_entry_folds_the_paces_and_a_split_one_keeps_them(tmp_path):
+    import pandas as pd
+
+    module = _analysis()
+    predictions = tmp_path / "predictions"
+    predictions.mkdir()
+    results = tmp_path / "results"
+    results.mkdir()
+    frame = pd.concat([
+        pd.DataFrame({
+            "ground_truth": ["sit", "slow-walk"],
+            "activity": ["sit", "walk"],
+            "id": subject,
+        })
+        for subject in ("a", "b")
+    ])
+    frame.to_parquet(predictions / "merged.parquet")
+    frame.to_parquet(predictions / "lendt_energy.parquet")
+
+    module.grouped(
+        predictions, results,
+        [("merged", "Merged", "greens"), ("lendt_energy", "Split", "purples")],
+        "toy", mode="activities",
+    )
+
+    merged = pd.read_excel(results / "toy.xlsx", sheet_name="Merged", index_col=0)
+    split = pd.read_excel(results / "toy.xlsx", sheet_name="Split", index_col=0)
+    assert str(merged.loc["fscore", "walk"]).startswith("1.00")
+    assert "slow-walk" not in merged.columns
+    assert str(split.loc["recall", "slow-walk"]).startswith("0.00")
+
+
+def test_mixed_vocabularies_get_their_own_row_axis(tmp_path, monkeypatch):
+    """On a shared axis the merged arm's rows land on the split arm's labels."""
+    import pandas as pd
+
+    module = _analysis()
+    predictions = tmp_path / "predictions"
+    predictions.mkdir()
+    results = tmp_path / "results"
+    results.mkdir()
+    frame = pd.DataFrame({
+        "ground_truth": ["sit", "walk"], "activity": ["sit", "walk"], "id": "a",
+    })
+    frame.to_parquet(predictions / "lendt_laboratory.parquet")
+    frame.to_parquet(predictions / "lendt_free_living.parquet")
+
+    saved = {}
+    monkeypatch.setattr(
+        "altair.HConcatChart.save",
+        lambda self, *a, **k: saved.setdefault("chart", self),
+    )
+    module.grouped(predictions, results, module.LENDT, "toy")
+
+    assert saved["chart"].resolve.scale.y == "independent"
 
 
 def test_main_stamps_provenance_after_building(tmp_path, monkeypatch):
@@ -100,9 +181,7 @@ def test_workbook_carries_the_averaged_matrix_beside_each_table(tmp_path):
     ])
     frame.to_parquet(predictions / "toy.parquet")
 
-    module.grouped(
-        predictions, results, [("toy", "Toy", "greens")], ["sit", "walk"], "toy"
-    )
+    module.grouped(predictions, results, [("toy", "Toy", "greens")], "toy")
 
     sheets = pd.ExcelFile(results / "toy.xlsx").sheet_names
     assert "Toy" in sheets
@@ -113,7 +192,7 @@ def test_workbook_carries_the_averaged_matrix_beside_each_table(tmp_path):
     # Flat, not a MultiIndex: Excel blanks a repeated index key and the sheet
     # then reads back with NaN in seven rows out of eight.
     assert matrix["true"].notna().all()
-    assert len(matrix) == 4
+    assert set(matrix["true"]) == {"sit", "walk"}
 
 
 def _posture_frame(activity: list[str]) -> "object":

@@ -2,14 +2,16 @@
 #
 # Each entry pins a HuggingFace dataset to an exact commit SHA. Pinning matters:
 # har_children_2024-harth moved v1.0.0 -> v1.1.0 (corrected thigh orientation)
-# partway through this study. SHAs resolved 2026-08-15.
+# partway through this study. SHAs resolved 2026-08-15; the three datasets with
+# walking paces, and the gait dataset, resolved 2026-10-02 from their release tags
+# (`repo_info(revision=tag).sha`, never `tag.target_commit`, an annotated tag).
 #
 # All published data is in the hub frame (x=up, y=right, z=forward). The pipeline
 # converts to the frame acti-motus expects on load; see frames.hub_to_acti.
 
 [lendt_adults]
 hf_repo  = "josefheidler/har_adults_2024-lendt"
-revision = "52c911ab718cb64d51cec386370aea51341f0b2e"
+revision = "acb8e86fa1d5b4e2c7976c6215b70dedc25ac593"   # v1.0.3
 vendor   = "Sens"
 thigh    = "acc"           # thigh only; already presented as anterior front-thigh
 labels   = "lendt"
@@ -42,7 +44,7 @@ labels   = "ntnu"
 
 [ntnu_walking_speeds]
 hf_repo  = "josefheidler/har_ws_adults_2025-harth"
-revision = "02ca7fa4fdbefa26342b4c0b0f00e2d41da046bb"
+revision = "cb8ce3367697886859b0454b274ee64093798137"   # v1.1.0
 vendor   = "Other"
 thigh    = "thigh_acc"
 back     = "back_acc"
@@ -50,7 +52,17 @@ labels   = "walking_speeds"
 
 [lendt_energy]
 hf_repo  = "josefheidler/har_ee_adults_2024-lendt"
-revision = "6108092b857164b2f6fe28fd06bb16536c5e753c"   # v1.1.1, SHA resolved 2026-09-07
+revision = "e5ccd573d3d25d532357ffcc39311072ba92fc0e"   # v1.3.0: unperformed stages unlabelled
 vendor   = "Other"         # Axivity AX6, 100 Hz
 thigh    = "acc"           # thigh only; published in the anterior front-thigh frame
 labels   = "lendt_ee"      # as `lendt`, plus the pre-session calibration block
+
+# Walking only, on a treadmill at 2-5 km/h: scored for its paces and nothing else.
+# Its steps were counted to validate acti-motus's step rate, but its paces were
+# NOT used to tune the slow/walk/fast cut-points, unlike the three datasets above.
+[lendt_gait]
+hf_repo  = "josefheidler/har_gait_adults_2023-lendt"
+revision = "e22b4040d0dfd7d7694a3054f96d4d54cfdb57dd"   # v1.0.0
+vendor   = "Other"         # Axivity AX6, 100 Hz
+thigh    = "acc"           # thigh only, in the hub frame like every dataset here
+labels   = "gait"

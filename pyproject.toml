@@ -1,13 +1,13 @@
 [project]
 name = "actimotus-validation"
-version = "1.0.1"
+version = "1.1.0"
 description = "Reproducibility package for the ActiMotus human activity recognition validation study"
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
-    "acti-motus==2.3.3",
+    "acti-motus==2.4.0",
     "pandas>=2.2",
     "pyarrow>=17",
     "huggingface-hub>=0.26",

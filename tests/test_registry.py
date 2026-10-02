@@ -7,7 +7,7 @@ from actimotus_validation.registry import DatasetSpec, load_registry
 REGISTRY = Path(__file__).parent.parent / "datasets.toml"
 
 
-def test_loads_all_six_datasets():
+def test_loads_all_seven_datasets():
     specs = load_registry(REGISTRY)
     assert set(specs) == {
         "ntnu_adults",
@@ -16,6 +16,7 @@ def test_loads_all_six_datasets():
         "ntnu_walking_speeds",
         "lendt_adults",
         "lendt_energy",
+        "lendt_gait",
     }
 
 
@@ -49,3 +50,11 @@ def test_spec_is_frozen():
     spec = load_registry(REGISTRY)["ntnu_adults"]
     with pytest.raises(Exception):
         spec.vendor = "Sens"  # type: ignore[misc]
+
+
+def test_gait_is_thigh_only_and_pinned_to_v1_0_0():
+    spec = load_registry(REGISTRY)["lendt_gait"]
+    assert spec.revision == "e22b4040d0dfd7d7694a3054f96d4d54cfdb57dd"
+    assert spec.thigh == "acc"
+    assert spec.back is None
+    assert spec.labels == "gait"

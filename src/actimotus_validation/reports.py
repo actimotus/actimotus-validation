@@ -6,7 +6,7 @@ import altair as alt
 import pandas as pd
 
 from .figures import get_confusion_matrix
-from .labels import fuse
+from .labels import fuse, merge_paces
 from .metrics import get_metrics, get_scores, get_table, summarize_values
 
 TRUE = "ground_truth"
@@ -16,6 +16,15 @@ GROUP = "id"
 # The metrics that mean something for a single behaviour. `support` is a count
 # and `accuracy` and `kappa` describe the whole recording.
 PER_BEHAVIOUR = ("precision", "recall", "fscore")
+
+
+def to_activities(df: pd.DataFrame) -> pd.DataFrame:
+    """Fold the walking paces into `walk` in both ground truth and predictions."""
+    out = df.copy()
+    out[TRUE] = merge_paces(out[TRUE])
+    out[PRED] = merge_paces(out[PRED])
+
+    return out
 
 
 def to_fused(df: pd.DataFrame) -> pd.DataFrame:

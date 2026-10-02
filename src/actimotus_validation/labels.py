@@ -17,7 +17,15 @@ import pandas as pd
 # Reported label sets, in display order.
 LABELS = ["lie", "sit", "stand", "shuffle", "walk", "stairs", "run", "bicycle"]
 LABELS_FUSED = ["sedentary", "stand", "walk", "run", "bicycle"]
-LABELS_WALKING_SPEEDS = ["shuffle", "walk", "fast-walk", "run"]
+LABELS_SPLIT = [
+    "lie", "sit", "stand", "shuffle", "slow-walk", "walk", "fast-walk", "stairs", "run",
+    "bicycle",
+]
+
+# acti-motus 2.4.0 splits walking into three paces on its step rate. Walking is
+# scored split wherever the protocol measured a speed, and folded into `walk`
+# wherever it did not: free-living video cannot establish a pace.
+PACES = {"slow-walk": "walk", "fast-walk": "walk"}
 
 # Collapse to five classes. Unlisted activities pass through unchanged.
 FUSED = {
@@ -25,9 +33,15 @@ FUSED = {
     "sit": "sedentary",
     "shuffle": "stand",
     "stairs": "walk",
+    "slow-walk": "walk",
     "fast-walk": "walk",
 }
 
+# Walking paces follow the hub's `walking_speed_bands_v1`, anchored on the 2024
+# Adult Compendium: `stroll` (< 3.2 km/h) and `slow` (3.2-4.0) are light and pool
+# into slow-walk; `normal` (4.0-5.5) is walk; `fast` (5.5-7.2) is fast-walk. A walk
+# with no variant has no measured speed and stays `walk`.
+#
 # None as a value means "drop this row" -- a deliberately unevaluated label,
 # distinct from a pair that is absent from the table entirely (which raises).
 _NTNU: dict[tuple[str | None, str | None], str | None] = {
@@ -60,28 +74,32 @@ _LENDT: dict[tuple[str | None, str | None], str | None] = {
     ("lie", "side"): "lie",
     ("lie", "supine"): "lie",
     ("walk", None): "walk",
-    ("walk", "slow"): "walk",
-    ("walk", "moderate"): "walk",
-    ("walk", "fast"): "walk",
+    ("walk", "stroll"): "slow-walk",
+    ("walk", "slow"): "slow-walk",
+    ("walk", "normal"): "walk",
     ("run", None): "run",
-    ("run", "slow"): "run",
-    ("run", "moderate"): "run",
-    ("run", "fast"): "run",
-    ("bicycle", "slow"): "bicycle",
-    ("bicycle", "moderate"): "bicycle",
-    ("bicycle", "fast"): "bicycle",
+    ("bicycle", None): "bicycle",
     ("bicycle", "coasting"): "bicycle",
     ("bicycle", "pedalling-seated"): "bicycle",
     ("bicycle", "pedalling-standing"): "bicycle",
 }
 
-# Cohort mean speeds: slow 3.1, moderate 4.9, fast 6.1 km/h. 'fast' is the
-# successor of the earlier 'brisk-walk' label, which mapped to fast-walk.
+# Cohort mean speeds 3.1, 4.9 and 6.1 km/h. v1.1.0 publishes the slowest as the
+# compound `stroll/slow`, because 3.1 sits on the 3.2 km/h edge between the two.
 _WALKING_SPEEDS: dict[tuple[str | None, str | None], str | None] = {
-    ("walk", "slow"): "walk",
-    ("walk", "moderate"): "walk",
+    ("walk", "stroll/slow"): "slow-walk",
+    ("walk", "normal"): "walk",
     ("walk", "fast"): "fast-walk",
     ("run", None): "run",
+}
+
+# Treadmill walking at 2, 3, 4 and 5 km/h, plus an outdoor walk at a preferred
+# speed that was never recorded. That walk has no band, so it is dropped: the
+# dataset is here only for its paces.
+_GAIT: dict[tuple[str | None, str | None], str | None] = {
+    ("walk", "stroll"): "slow-walk",
+    ("walk", "normal"): "walk",
+    ("walk", None): None,
 }
 
 # The energy-expenditure cohort shares Lendt's activity vocabulary and adds a
@@ -98,6 +116,7 @@ LABEL_TABLES = {
     "lendt": _LENDT,
     "lendt_ee": _LENDT_EE,
     "walking_speeds": _WALKING_SPEEDS,
+    "gait": _GAIT,
 }
 
 
@@ -117,7 +136,7 @@ def resolve_series(table: str, label: pd.Series, variant: pd.Series) -> pd.Serie
     """Resolve (label, variant) pairs to canonical activities.
 
     Args:
-        table: Key into LABEL_TABLES -- 'ntnu', 'lendt' or 'walking_speeds'.
+        table: Key into LABEL_TABLES, e.g. 'ntnu', 'lendt' or 'walking_speeds'.
         label: Raw label column.
         variant: Raw variant column, aligned with `label`.
 
@@ -148,6 +167,11 @@ def resolve_series(table: str, label: pd.Series, variant: pd.Series) -> pd.Serie
     return pd.Series(resolved, index=label.index, dtype="object")
 
 
+def merge_paces(activities: pd.Series) -> pd.Series:
+    """Fold the three walking paces into `walk`; everything else is unchanged."""
+    return activities.astype(str).replace(PACES)
+
+
 def fuse(activities: pd.Series) -> pd.Series:
-    """Collapse the eight-activity vocabulary to the five fused classes."""
+    """Collapse the activity vocabulary to the five fused classes."""
     return activities.astype(str).replace(FUSED)

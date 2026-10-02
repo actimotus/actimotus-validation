@@ -9,12 +9,13 @@ authors:
 repository-code: "https://github.com/actimotus/actimotus-validation"
 doi: "10.5281/zenodo.21955041"
 license: BSD-3-Clause
-version: 1.0.1
-date-released: "2026-08-15"
+version: 1.1.0
+date-released: "2026-10-02"
 abstract: >-
   Reproduces the validation of the ActiMotus human activity recognition
-  algorithm against video ground truth on five public accelerometry datasets
-  covering children, adults and older adults. Three scripts regenerate every
+  algorithm against annotated ground truth on seven public accelerometry
+  datasets covering children, adults and older adults, including the three
+  walking paces reported from ActiMotus 2.4.0. Three scripts regenerate every
   table and confusion matrix in the study from data fetched at pinned
   HuggingFace revisions and an ActiMotus release installed from PyPI.
 keywords:

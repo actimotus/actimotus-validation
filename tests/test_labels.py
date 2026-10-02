@@ -5,9 +5,10 @@ from actimotus_validation.labels import (
     FUSED,
     LABELS,
     LABELS_FUSED,
-    LABELS_WALKING_SPEEDS,
+    LABELS_SPLIT,
     UnknownLabelError,
     fuse,
+    merge_paces,
     resolve_series,
 )
 
@@ -45,16 +46,43 @@ def test_ntnu_bending_is_stand_and_jumping_transition_are_dropped():
     assert pd.isna(out.iloc[2])
 
 
-def test_walking_speeds_fast_is_fast_walk_others_are_walk():
-    pairs = [("walk", "slow"), ("walk", "moderate"), ("walk", "fast"), ("run", None)]
+def test_walking_speeds_resolves_three_paces():
+    """v1.1.0 publishes the compound `stroll/slow`, pooled below 4.0 km/h."""
+    pairs = [("walk", "stroll/slow"), ("walk", "normal"), ("walk", "fast"), ("run", None)]
     out = resolve_series("walking_speeds", *_series(pairs))
-    assert list(out) == ["walk", "walk", "fast-walk", "run"]
+    assert list(out) == ["slow-walk", "walk", "fast-walk", "run"]
 
 
-def test_lendt_fast_walk_stays_walk():
-    """Only the walking-speeds protocol resolves speed; free-living video cannot."""
-    out = resolve_series("lendt", *_series([("walk", "fast")]))
+def test_lendt_paces_from_the_speed_bands():
+    """`stroll` and `slow` sit below 4.0 km/h, the Compendium's light edge."""
+    pairs = [("walk", "stroll"), ("walk", "slow"), ("walk", "normal")]
+    out = resolve_series("lendt", *_series(pairs))
+    assert list(out) == ["slow-walk", "slow-walk", "walk"]
+
+
+def test_lendt_walk_without_a_speed_stays_walk():
+    """Free-living video cannot establish a pace, so the walk carries none."""
+    out = resolve_series("lendt", *_series([("walk", None)]))
     assert list(out) == ["walk"]
+
+
+def test_lendt_old_protocol_relative_variants_are_gone():
+    """The pre-v1.0.3 variants were relative to the protocol, not to a speed."""
+    with pytest.raises(UnknownLabelError, match="moderate"):
+        resolve_series("lendt", *_series([("walk", "moderate")]))
+
+
+def test_gait_treadmill_paces_and_the_outdoor_walk_is_dropped():
+    """The outdoor walk was at an unrecorded preferred speed, so it has no band."""
+    pairs = [("walk", "stroll"), ("walk", "normal"), ("walk", None)]
+    out = resolve_series("gait", *_series(pairs))
+    assert list(out[:2]) == ["slow-walk", "walk"]
+    assert pd.isna(out.iloc[2])
+
+
+def test_merge_paces_folds_every_pace_into_walk():
+    s = pd.Series(["slow-walk", "walk", "fast-walk", "run", "sit"])
+    assert list(merge_paces(s)) == ["walk", "walk", "walk", "run", "sit"]
 
 
 def test_lendt_lie_postures_collapse():
@@ -86,17 +114,24 @@ def test_known_label_with_unknown_variant_raises():
 
 
 def test_fuse_collapses_to_five_classes():
-    s = pd.Series(["lie", "sit", "stand", "shuffle", "walk", "stairs", "fast-walk", "run", "bicycle"])
+    s = pd.Series(
+        ["lie", "sit", "stand", "shuffle", "slow-walk", "walk", "stairs", "fast-walk", "run",
+         "bicycle"]
+    )
     assert list(fuse(s)) == [
-        "sedentary", "sedentary", "stand", "stand", "walk", "walk", "walk", "run", "bicycle",
+        "sedentary", "sedentary", "stand", "stand", "walk", "walk", "walk", "walk", "run",
+        "bicycle",
     ]
 
 
 def test_label_orders():
     assert LABELS == ["lie", "sit", "stand", "shuffle", "walk", "stairs", "run", "bicycle"]
     assert LABELS_FUSED == ["sedentary", "stand", "walk", "run", "bicycle"]
-    assert LABELS_WALKING_SPEEDS == ["shuffle", "walk", "fast-walk", "run"]
-    assert set(FUSED) == {"lie", "sit", "shuffle", "stairs", "fast-walk"}
+    assert LABELS_SPLIT == [
+        "lie", "sit", "stand", "shuffle", "slow-walk", "walk", "fast-walk", "stairs", "run",
+        "bicycle",
+    ]
+    assert set(FUSED) == {"lie", "sit", "shuffle", "stairs", "slow-walk", "fast-walk"}
 
 
 def test_lendt_ee_drops_the_calibration_block():
@@ -112,4 +147,4 @@ def test_lendt_ee_drops_the_calibration_block():
     )
 
     assert out.isna().tolist() == [True, False]
-    assert out.iloc[1] == "walk"
+    assert out.iloc[1] == "slow-walk"

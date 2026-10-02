@@ -78,12 +78,9 @@ def classify(spec: DatasetSpec, features_dir: Path, use_back: bool) -> pd.DataFr
         rows.append(joined)
 
     df = pd.concat(rows)
-    # Free-living video cannot establish walking speed, so fast-walk predictions
-    # are reported as walk everywhere except the walking-speeds protocol.
-    if spec.labels != "walking_speeds":
-        df["activity"] = df["activity"].astype(str).replace("fast-walk", "walk")
-    else:
-        df["activity"] = df["activity"].astype(str)
+    # Predictions keep acti-motus's three walking paces. Stage 3 folds them into
+    # walk for every panel except the pace panel, so one table serves both.
+    df["activity"] = df["activity"].astype(str)
 
     return df
 

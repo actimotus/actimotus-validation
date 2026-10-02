@@ -3,7 +3,7 @@ import altair as alt
 import pandas as pd
 
 from actimotus_validation.labels import LABELS_FUSED
-from actimotus_validation.reports import build_report, to_fused
+from actimotus_validation.reports import build_report, to_activities, to_fused
 
 LABELS = ["sit", "walk"]
 
@@ -192,3 +192,15 @@ def test_comparison_drops_metrics_that_are_not_per_behaviour():
     trunk = pd.concat([_posture(s, ["lie", "lie", "sit", "sit"]) for s in "abc"])
     out = build_comparison(thigh, trunk, labels=POSTURES, focus=POSTURES)
     assert set(out["metric"]) == {"precision", "recall", "fscore"}
+
+
+def test_to_activities_folds_paces_in_both_columns():
+    """A pace error is not an activity error: slow walking read as walk is right."""
+    df = pd.DataFrame({
+        "ground_truth": ["slow-walk", "walk", "fast-walk", "sit"],
+        "activity": ["walk", "fast-walk", "slow-walk", "sit"],
+        "id": "a",
+    })
+    out = to_activities(df)
+    assert list(out["ground_truth"]) == ["walk", "walk", "walk", "sit"]
+    assert list(out["activity"]) == ["walk", "walk", "walk", "sit"]
